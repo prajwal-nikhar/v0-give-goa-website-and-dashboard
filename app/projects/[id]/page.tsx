@@ -21,7 +21,7 @@ The program focuses on holistic development, incorporating modern teaching techn
 
 Through this initiative, we've reached over 250 children across 5 villages, providing them with access to quality education, learning materials, and career guidance. The program also includes teacher training workshops to build local capacity for sustainable impact.`,
     images: ["/rural-classroom.png", "/students-learning.jpg", "/teaching-session.jpg", "/classroom-activities.jpg"],
-    videoUrl: "/project-video-1.mp4",
+    videoUrl: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_Px0wjuGM8ualhDHgBNCSaFk3eK7T/ni3TdLFeddUZY-KHxufPNi/public/project-video-1.mp4",
     sdgs: ["Quality Education", "Reduced Inequalities", "Partnerships for the Goals"],
     sector: "Education",
     year: "2024",
@@ -62,7 +62,7 @@ The campaign has evolved into a year-round movement, with over 500 volunteers pa
       "/recycling-station.jpg",
       "/beach-after-cleanup.jpg",
     ],
-    videoUrl: "/project-video-2.mp4",
+    videoUrl: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/git-blob/prj_Px0wjuGM8ualhDHgBNCSaFk3eK7T/-AZFjlIUxLQDMQ89RVGmIq/public/project-video-2.mp4",
     sdgs: ["Climate Action", "Life Below Water", "Sustainable Cities and Communities"],
     sector: "Environment",
     year: "2024",
