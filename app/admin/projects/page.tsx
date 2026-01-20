@@ -1,182 +1,119 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Plus, Pencil, Trash2, Eye } from "lucide-react"
+import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu';
+import { createBrowserClient } from '@supabase/ssr';
 
-const projects = [
-  {
-    id: 1,
-    title: "Rural Education Initiative",
-    sector: "Education",
-    year: "2024",
-    status: "Published",
-    students: 4,
-    lastUpdated: "2024-01-15",
-  },
-  {
-    id: 2,
-    title: "Clean Beach Campaign",
-    sector: "Environment",
-    year: "2024",
-    status: "Published",
-    students: 4,
-    lastUpdated: "2024-01-10",
-  },
-  {
-    id: 3,
-    title: "Women's Skill Development",
-    sector: "Women Empowerment",
-    year: "2024",
-    status: "Draft",
-    students: 3,
-    lastUpdated: "2024-01-08",
-  },
-  {
-    id: 4,
-    title: "Healthcare Outreach Program",
-    sector: "Healthcare",
-    year: "2023",
-    status: "Published",
-    students: 5,
-    lastUpdated: "2023-12-20",
-  },
-]
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOption, setSortOption] = useState('title');
 
-export default function AdminProjectsPage() {
-  const [searchQuery, setSearchQuery] = React.useState("")
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  const filteredProjects = projects.filter((project) => project.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('status', 'approved');
+
+      if (error) {
+        console.error('Error fetching projects:', error);
+      } else {
+        setProjects(data || []);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const filteredAndSortedProjects = useMemo(() => {
+    return projects
+      .filter(project =>
+        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.keywords?.some((k: string) =>
+          k.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      )
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [projects, searchTerm]);
+
+  if (filteredAndSortedProjects.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold mb-4">No projects available</h2>
+        <p className="text-muted-foreground">
+          Please check back later or try a different search term.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="border-b bg-background">
-        <div className="container py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Project Management</h1>
-              <p className="text-muted-foreground mt-1">Add, edit, or delete projects</p>
-            </div>
-            <Button asChild>
-              <Link href="/admin/projects/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Add New Project
-              </Link>
-            </Button>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold mb-4 md:mb-0">Projects</h1>
+        <div className="flex items-center gap-4">
+          <Input
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="max-w-xs"
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">Sort by</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuRadioGroup value={sortOption} onValueChange={setSortOption}>
+                <DropdownMenuRadioItem value="title">Title</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      <div className="container py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>All Projects</CardTitle>
-            <CardDescription>Manage your project database</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Search */}
-            <div className="flex gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search projects..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Projects Table */}
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Project Title</TableHead>
-                    <TableHead>Sector</TableHead>
-                    <TableHead>Year</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Students</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProjects.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="font-medium">{project.title}</TableCell>
-                      <TableCell>{project.sector}</TableCell>
-                      <TableCell>{project.year}</TableCell>
-                      <TableCell>
-                        <Badge variant={project.status === "Published" ? "default" : "secondary"}>
-                          {project.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{project.students}</TableCell>
-                      <TableCell className="text-muted-foreground">{project.lastUpdated}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link href={`/projects/${project.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link href={`/admin/projects/${project.id}/edit`}>
-                              <Pencil className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{project.title}"? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {filteredProjects.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">No projects found.</div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {filteredAndSortedProjects.map(project => (
+          <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <Link href={`/projects/${project.id}`}>
+              <img
+                src={project.image_url || 'https://source.unsplash.com/random/800x600?project'}
+                alt={project.title}
+                className="w-full h-48 object-cover"
+              />
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold mb-2">{project.title}</h2>
+                <p className="text-muted-foreground mb-4">{project.description}</p>
+                {project.keywords && (
+                  <div className="flex flex-wrap gap-2">
+                    {project.keywords.map((keyword: string) => (
+                      <Badge key={keyword} variant="secondary">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Link>
+          </Card>
+        ))}
       </div>
     </div>
-  )
+  );
 }

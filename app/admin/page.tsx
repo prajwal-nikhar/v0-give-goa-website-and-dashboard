@@ -1,9 +1,42 @@
+
 import Link from "next/link"
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, FolderKanban, Upload, FileText, AlertCircle, TrendingUp, Users, Clock } from "lucide-react"
+import { Badge } from "@/components/ui/badge";
+import { LayoutDashboard, FolderKanban, Upload, FileText, AlertCircle, Users, Clock, CheckCircle } from "lucide-react"
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  const { count: totalProjects } = await supabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: pendingProjects } = await supabase
+    .from('projects')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+    
+  const { data: recentProjects, error } = await supabase
+    .from('projects')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="border-b bg-background">
@@ -22,8 +55,7 @@ export default function AdminDashboardPage() {
               <FolderKanban className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="text-2xl md:text-3xl font-bold">156</div>
-              <p className="text-xs text-muted-foreground mt-1">+12 from last month</p>
+              <div className="text-2xl md:text-3xl font-bold">{totalProjects ?? 0}</div>
             </CardContent>
           </Card>
 
@@ -33,7 +65,7 @@ export default function AdminDashboardPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="text-2xl md:text-3xl font-bold text-orange-600">8</div>
+              <div className="text-2xl md:text-3xl font-bold text-orange-600">{pendingProjects ?? 0}</div>
               <p className="text-xs text-muted-foreground mt-1">Requires review</p>
             </CardContent>
           </Card>
@@ -62,22 +94,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <Link href="/admin/overview">
-              <CardHeader>
-                <LayoutDashboard className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Dashboard Overview</CardTitle>
-                <CardDescription>View comprehensive analytics and insights</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full bg-transparent">
-                  View Dashboard
-                </Button>
-              </CardContent>
-            </Link>
-          </Card>
-
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <Link href="/admin/projects">
               <CardHeader>
@@ -88,6 +105,21 @@ export default function AdminDashboardPage() {
               <CardContent>
                 <Button variant="outline" className="w-full bg-transparent">
                   Manage Projects
+                </Button>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href="/admin/projects/pending">
+              <CardHeader>
+                <CheckCircle className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Pending Projects</CardTitle>
+                <CardDescription>Approve or reject project submissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="w-full bg-transparent">
+                  Review Submissions
                 </Button>
               </CardContent>
             </Link>
@@ -137,21 +169,41 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Link>
           </Card>
-
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <Link href="/admin/analytics">
-              <CardHeader>
-                <TrendingUp className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Analytics</CardTitle>
-                <CardDescription>Deep dive into impact metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full bg-transparent">
-                  View Analytics
-                </Button>
-              </CardContent>
-            </Link>
-          </Card>
+        </div>
+        
+        {/* Recent Project Submissions */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Recent Project Submissions</h2>
+            {recentProjects && recentProjects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {recentProjects.map((project) => (
+                  <Link key={project.id} href={`/admin/projects/${project.id}`} className="block hover:shadow-lg transition-shadow duration-200 rounded-lg">
+                    <Card className="h-full flex flex-col">
+                      <CardHeader>
+                        <CardTitle className="truncate">{project.title}</CardTitle>
+                        <CardDescription>
+                          Submitted by: {project.submitter_email}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(project.created_at).toLocaleDateString()}
+                          </span>
+                          <Badge 
+                            variant={project.status === 'approved' ? 'default' : project.status === 'rejected' ? 'destructive' : 'secondary'}
+                          >
+                            {project.status}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+            </div>
+             ) : (
+                <p>No project submissions found.</p>
+            )}
         </div>
       </div>
     </div>

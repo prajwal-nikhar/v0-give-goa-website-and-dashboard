@@ -10,28 +10,28 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <Badge variant="secondary" className="text-sm">
-              About GiveGoa
+              About SLRI
             </Badge>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance">
               Empowering Students to Create Lasting Impact
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground text-pretty">
-              GiveGoa is GIM's flagship community engagement platform connecting students with meaningful projects that
+              SLRI is GIM's flagship community engagement platform connecting students with meaningful projects that
               drive sustainable development and social change.
             </p>
           </div>
         </div>
       </section>
 
-      {/* What is GiveGoa */}
+      {/* What is SLRI */}
       <section className="py-12 md:py-16 lg:py-20 border-b">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
-              <h2 className="text-3xl lg:text-4xl font-bold mb-6">What is GiveGoa?</h2>
+              <h2 className="text-3xl lg:text-4xl font-bold mb-6">What is SLRI?</h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  GiveGoa is a transformative initiative by Goa Institute of Management (GIM) that bridges the gap
+                  SLRI is a transformative initiative by Goa Institute of Management (GIM) that bridges the gap
                   between academic learning and real-world social impact. We believe that true education extends beyond
                   classrooms and into communities.
                 </p>
@@ -41,7 +41,7 @@ export default function AboutPage() {
                   aligned with the UN Sustainable Development Goals.
                 </p>
                 <p>
-                  Through GiveGoa, students don't just learn about sustainable development—they actively contribute to
+                  Through SLRI, students don't just learn about sustainable development, they actively contribute to
                   it, gaining practical experience while making a meaningful difference in the lives of others.
                 </p>
               </div>
@@ -104,7 +104,7 @@ export default function AboutPage() {
                   <div className="text-sm text-muted-foreground mb-1">2018</div>
                   <h3 className="text-xl font-semibold mb-2">The Beginning</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    GiveGoa was launched as a pilot initiative with 20 students working on 5 community projects in rural
+                    SLRI was launched as a pilot initiative with 20 students working on 5 community projects in rural
                     Goa, focusing on education and environmental conservation.
                   </p>
                 </div>
@@ -138,7 +138,7 @@ export default function AboutPage() {
                   <div className="text-sm text-muted-foreground mb-1">2021-2022</div>
                   <h3 className="text-xl font-semibold mb-2">Digital Transformation</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Launch of the GiveGoa digital platform for project tracking, impact measurement, and stakeholder
+                    Launch of the SLRI digital platform for project tracking, impact measurement, and stakeholder
                     engagement. Introduction of data-driven reporting for accreditation purposes.
                   </p>
                 </div>
@@ -154,7 +154,7 @@ export default function AboutPage() {
                   <div className="text-sm text-muted-foreground mb-1">2023-Present</div>
                   <h3 className="text-xl font-semibold mb-2">Pan-India Impact</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    GiveGoa now coordinates 150+ active projects across multiple states with 89 partner organizations,
+                    SLRI now coordinates 150+ active projects across multiple states with 89 partner organizations,
                     engaging over 2,800 students and impacting thousands of lives across communities.
                   </p>
                 </div>
@@ -248,7 +248,7 @@ export default function AboutPage() {
           <div className="text-center mb-10 md:mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Student Stories</h2>
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-              Hear from students who have been transformed through their GiveGoa experience
+              Hear from students who have been transformed through their SLRI experience
             </p>
           </div>
 
@@ -326,7 +326,7 @@ export default function AboutPage() {
               <CardContent>
                 <Quote className="h-6 w-6 text-primary mb-2" />
                 <p className="text-muted-foreground italic leading-relaxed">
-                  "GiveGoa has transformed how we approach experiential learning at GIM. Students don't just study
+                  "SLRI has transformed how we approach experiential learning at GIM. Students don't just study
                   sustainable development—they actively create it. The growth I've witnessed in our students through
                   these projects is remarkable."
                 </p>
@@ -341,7 +341,7 @@ export default function AboutPage() {
               <CardContent>
                 <Quote className="h-6 w-6 text-primary mb-2" />
                 <p className="text-muted-foreground italic leading-relaxed">
-                  "Partnering with GIM through GiveGoa has been transformative for our organization. The students bring
+                  "Partnering with GIM through SLRI has been transformative for our organization. The students bring
                   fresh perspectives, innovative solutions, and genuine commitment to making a difference in our
                   communities."
                 </p>

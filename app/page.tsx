@@ -1,9 +1,39 @@
+'use client'
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Users, Target, TrendingUp, Globe } from "lucide-react"
+import { useEffect, useState } from "react"
+import { createBrowserClient } from '@supabase/ssr'
+import { User } from "@supabase/supabase-js"
 
 export default function HomePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (data) {
+        setUser(data.user);
+      }
+    };
+
+    fetchUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -14,19 +44,21 @@ export default function HomePage() {
               Community Impact Through Student Action
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground text-pretty max-w-2xl mx-auto">
-              GiveGoa connects GIM students with community engagement projects that drive sustainable development across
+              SLRI connects GIM students with community engagement projects that drive sustainable development across
               Goa and beyond.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-              <Button asChild size="lg">
-                <Link href="/projects">
-                  Explore Projects <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/dashboard">View Impact Dashboard</Link>
-              </Button>
-            </div>
+            {!user && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+                <Button asChild size="lg">
+                  <Link href="/student-login">
+                    Student Login <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/admin-login">Admin Login</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -116,7 +148,7 @@ export default function HomePage() {
                 <Link href="/projects">Browse Projects</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/about">Learn More About GiveGoa</Link>
+                <Link href="/about">Learn More About SLRI</Link>
               </Button>
             </div>
           </div>
