@@ -58,7 +58,9 @@ export default function AdminLoginPage() {
     }
 
     router.refresh()
-    router.replace('/admin')
+    setTimeout(() => {
+      window.location.href = '/admin'
+    }, 100)
   }
 
   return (
