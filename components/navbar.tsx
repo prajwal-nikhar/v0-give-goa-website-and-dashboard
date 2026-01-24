@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { User } from '@supabase/supabase-js'
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import UserProfile from "@/components/user-profile"
 import { getSupabaseClient } from "@/lib/supabase"
@@ -101,6 +101,7 @@ export function Navbar() {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                     <div className="flex flex-col h-full">
                       <div className="px-6 py-6 border-b">
                         <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
