@@ -5,17 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Users, Target, TrendingUp, Globe } from "lucide-react"
 import { useEffect, useState } from "react"
-import { createBrowserClient } from '@supabase/ssr'
 import { User } from "@supabase/supabase-js"
+import { getSupabaseClient } from "@/lib/supabase"
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
+    if (!supabase) return;
+    
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (data) {

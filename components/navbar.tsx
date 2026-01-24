@@ -3,13 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { createBrowserClient } from '@supabase/ssr'
 import { User } from '@supabase/supabase-js'
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import UserProfile from "@/components/user-profile"
+import { getSupabaseClient } from "@/lib/supabase"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false)
@@ -18,13 +18,12 @@ export function Navbar() {
   const [activeLink, setActiveLink] = React.useState(pathname)
   const [user, setUser] = React.useState<User | null>(null)
   const [isAdmin, setIsAdmin] = React.useState(false)
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient()
 
   React.useEffect(() => {
     setIsMounted(true);
+
+    if (!supabase) return;
 
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();

@@ -1,21 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Link from 'next/link';
 import { User } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function UserProfile() {
   const [user, setUser] = useState<User | null>(null);
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
+    if (!supabase) return;
+    
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (data) {
@@ -35,6 +34,7 @@ export default function UserProfile() {
   }, [supabase]);
 
   const handleLogout = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     window.location.href = '/';
   };

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import Preloads from './preload/preload';
 import { Analytics } from '@vercel/analytics/next';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function PageWrapper({
   children,
@@ -16,10 +16,9 @@ export default function PageWrapper({
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [pageName, setPageName] = useState('');
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
-    setIsLoading(true);
-
     const projectDashboardRegex = /^\/admin\/dashboard\/(.+)/;
     const match = pathname.match(projectDashboardRegex);
 
@@ -27,12 +26,7 @@ export default function PageWrapper({
       const projectId = match[1];
       const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(projectId);
 
-      if (isUUID) {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-
+      if (isUUID && supabase) {
         const fetchProjectTitle = async () => {
           const { data: project } = await supabase
             .from('projects')
@@ -43,7 +37,7 @@ export default function PageWrapper({
           if (project) {
             setPageName(project.title);
           } else {
-            setPageName('Project'); // Fallback
+            setPageName('Project');
           }
         };
 
@@ -54,25 +48,16 @@ export default function PageWrapper({
     } else {
       setPageName(pathname.replace('/', '') || 'home');
     }
-  }, [pathname]);
+  }, [pathname, supabase]);
 
   const handlePreloadComplete = () => {
     setIsLoading(false);
   };
 
   return (
-    <AnimatePresence mode='wait'>
-      {isLoading ? (
-        <Preloads
-          pageName={pageName}
-          onComplete={handlePreloadComplete}
-        />
-      ) : (
-        <>
-          <main className='min-h-screen'>{children}</main>
-          <Analytics />
-        </>
-      )}
-    </AnimatePresence>
+    <>
+      <main className='min-h-screen'>{children}</main>
+      <Analytics />
+    </>
   );
 }
