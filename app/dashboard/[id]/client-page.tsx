@@ -35,22 +35,22 @@ export function ProjectClientPage({ project }: { project: any }) {
     }
 
     if (status === 'declined') {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { error: functionsError } = await supabase.functions.invoke('send-email', {
-            body: {
-            to: project.submitter_email,
-            subject: `Project Declined: ${project.title}`,
-            body: `Your project "${project.title}" has been declined for the following reason: ${justification}`,
-            },
-            headers: {
-                Authorization: `Bearer ${session.access_token}`
-            }
+      try {
+        const response = await fetch('/api/send-rejection-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: project.submitter_email,
+            projectTitle: project.title,
+            reason: justification,
+          }),
         });
-
-        if (functionsError) {
-          toast.error(`Failed to send email: ${functionsError.message}`);
+        
+        if (!response.ok) {
+          console.error('Failed to send rejection email');
         }
+      } catch (emailError) {
+        console.error('Error sending rejection email:', emailError);
       }
     }
     
