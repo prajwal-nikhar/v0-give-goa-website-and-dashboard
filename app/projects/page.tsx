@@ -7,29 +7,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('title');
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const [loading, setLoading] = useState(true);
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
     const fetchProjects = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('status', 'approved');
 
       if (error) {
-        console.error('Error fetching projects:', error);
+        console.error('Error fetching projects:', error.message);
       } else {
-        setProjects(data);
+        setProjects(data || []);
       }
+      setLoading(false);
     };
 
     fetchProjects();
@@ -48,6 +52,14 @@ export default function ProjectsPage() {
         return 0;
       });
   }, [projects, searchTerm, sortOption]);
+
+  if (loading) {
+    return (
+      <div className='flex flex-col items-center justify-center min-h-[60vh]'>
+        <p className='text-muted-foreground'>Loading projects...</p>
+      </div>
+    );
+  }
 
   if (filteredAndSortedProjects.length === 0) {
     return (
