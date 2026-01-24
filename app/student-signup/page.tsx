@@ -28,8 +28,8 @@ export default function StudentSignupPage() {
       return;
     }
 
-    if (!email.endsWith('@gim.ac.in')) {
-      setError('Only @gim.ac.in emails are allowed');
+    if (!email.endsWith('@gmail.com')) {
+      setError('Only @gmail.com emails are allowed');
       return;
     }
 
@@ -67,7 +67,7 @@ export default function StudentSignupPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="student@gim.ac.in" required onChange={(e) => setEmail(e.target.value)} />
+              <Input id="email" type="email" placeholder="student@gmail.com" required onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
