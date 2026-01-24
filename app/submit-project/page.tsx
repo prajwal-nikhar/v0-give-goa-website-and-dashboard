@@ -6,12 +6,49 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createBrowserClient } from '@supabase/ssr';
+
+const SDG_OPTIONS = [
+  'SDG 1 - No Poverty',
+  'SDG 2 - Zero Hunger',
+  'SDG 3 - Good Health and Well-being',
+  'SDG 4 - Quality Education',
+  'SDG 5 - Gender Equality',
+  'SDG 6 - Clean Water and Sanitation',
+  'SDG 7 - Affordable and Clean Energy',
+  'SDG 8 - Decent Work and Economic Growth',
+  'SDG 9 - Industry, Innovation and Infrastructure',
+  'SDG 10 - Reduced Inequalities',
+  'SDG 11 - Sustainable Cities and Communities',
+  'SDG 12 - Responsible Consumption and Production',
+  'SDG 13 - Climate Action',
+  'SDG 14 - Life Below Water',
+  'SDG 15 - Life on Land',
+  'SDG 16 - Peace, Justice and Strong Institutions',
+  'SDG 17 - Partnerships for the Goals',
+];
+
+const SECTOR_OPTIONS = [
+  'Education',
+  'Healthcare',
+  'Environment',
+  'Agriculture',
+  'Technology',
+  'Social Welfare',
+  'Women Empowerment',
+  'Rural Development',
+  'Urban Development',
+  'Other',
+];
 
 export default function SubmitProject() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [sector, setSector] = useState('');
+  const [sdg, setSdg] = useState('');
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -39,6 +76,7 @@ export default function SubmitProject() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSubmitting(true);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -47,51 +85,62 @@ export default function SubmitProject() {
       return;
     }
 
-    if (!file) {
-      console.error('File not selected');
-      return;
-    }
-
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
+    
     const title = formData.get('title') as string;
     const organizationName = formData.get('organizationName') as string;
-    const description = formData.get('description') as string;
-    const fullDescription = formData.get('fullDescription') as string;
+    const objectives = formData.get('objectives') as string;
+    const geographicalScope = formData.get('geographicalScope') as string;
+    const groupNo = formData.get('groupNo') as string;
+    const year = formData.get('year') as string;
+    const groupId = formData.get('groupId') as string;
+    const concentration = formData.get('concentration') as string;
+    const projectLink = formData.get('projectLink') as string;
     const studentNames = formData.get('studentNames') as string;
     const faculty = formData.get('faculty') as string;
     const mentor = formData.get('mentor') as string;
-    const keywords = formData.get('keywords') as string;
 
-    const filePath = `${user.id}/${file.name}`;
+    let fileUrl = null;
+    
+    if (file) {
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('project-submissions')
+        .upload(filePath, file, { upsert: true });
 
-    const { error: uploadError } = await supabase.storage
-      .from('project-submissions')
-      .upload(filePath, file, {
-        upsert: true,
-      });
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        setSubmitting(false);
+        return;
+      }
 
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      return;
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-submissions')
+        .getPublicUrl(filePath);
+      
+      fileUrl = publicUrl;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('project-submissions')
-      .getPublicUrl(filePath);
 
     const { error: insertError } = await supabase.from('projects').insert([
       {
         user_id: user.id,
         title,
         organization_name: organizationName,
-        description,
-        full_description: fullDescription,
-        student_names: studentNames.split(',').map((s) => s.trim()),
+        description: objectives,
+        objectives,
+        sector,
+        geographical_scope: geographicalScope,
+        group_no: groupNo,
+        year,
+        group_id: groupId,
+        concentration,
+        sdg,
+        project_link: projectLink,
+        student_names: studentNames ? studentNames.split(',').map((s) => s.trim()) : [],
         faculty,
         mentor,
-        keywords: keywords.split(',').map((s) => s.trim()),
-        file_url: publicUrl,
+        file_url: fileUrl,
         submitter_email: user.email,
         status: 'pending',
       },
@@ -99,16 +148,20 @@ export default function SubmitProject() {
 
     if (insertError) {
       console.error('Error inserting project:', insertError);
-      // Revert the file upload if the insert fails
-      await supabase.storage.from('project-submissions').remove([filePath]);
+      setSubmitting(false);
       return;
     }
 
     setIsSubmitted(true);
+    setSubmitting(false);
   };
 
   if (loading) {
-    return <div>Loading...</div>; // Or a spinner component
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -119,68 +172,149 @@ export default function SubmitProject() {
         </CardHeader>
         <CardContent>
           {isSubmitted ? (
-            <div className='text-center'>
+            <div className='text-center py-8'>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
               <h2 className='text-2xl font-bold mb-4'>Thank you for your submission!</h2>
-              <p>Your project has been submitted for approval. An administrator will review the information, and upon approval, it will be listed in the projects section.</p>
+              <p className="text-muted-foreground">Your project has been submitted for approval. An administrator will review the information, and upon approval, it will be listed in the projects section.</p>
+              <Button className="mt-6" onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className='space-y-4'>
-              <div>
-                <label htmlFor='title' className='block text-sm font-medium text-gray-700'>
-                  Project Title
-                </label>
-                <Input id='title' name='title' type='text' required />
+            <form onSubmit={handleSubmit} className='space-y-6'>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label htmlFor='title' className='block text-sm font-medium mb-1'>
+                    Project Title *
+                  </label>
+                  <Input id='title' name='title' type='text' required placeholder="Enter project title" />
+                </div>
+
+                <div>
+                  <label htmlFor='sector' className='block text-sm font-medium mb-1'>
+                    Sector *
+                  </label>
+                  <Select value={sector} onValueChange={setSector} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sector" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SECTOR_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor='sdg' className='block text-sm font-medium mb-1'>
+                    SDG Goal *
+                  </label>
+                  <Select value={sdg} onValueChange={setSdg} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select SDG" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SDG_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor='geographicalScope' className='block text-sm font-medium mb-1'>
+                    Geographical Scope *
+                  </label>
+                  <Input id='geographicalScope' name='geographicalScope' type='text' required placeholder="e.g., Goa, Panaji, Rural Areas" />
+                </div>
+
+                <div>
+                  <label htmlFor='organizationName' className='block text-sm font-medium mb-1'>
+                    Partner Organization
+                  </label>
+                  <Input id='organizationName' name='organizationName' type='text' placeholder="Organization name (if any)" />
+                </div>
+
+                <div>
+                  <label htmlFor='year' className='block text-sm font-medium mb-1'>
+                    Year *
+                  </label>
+                  <Input id='year' name='year' type='text' required placeholder="e.g., 2024" />
+                </div>
+
+                <div>
+                  <label htmlFor='groupNo' className='block text-sm font-medium mb-1'>
+                    Group Number
+                  </label>
+                  <Input id='groupNo' name='groupNo' type='text' placeholder="e.g., 1, 2, 3" />
+                </div>
+
+                <div>
+                  <label htmlFor='groupId' className='block text-sm font-medium mb-1'>
+                    Group ID
+                  </label>
+                  <Input id='groupId' name='groupId' type='text' placeholder="e.g., GRP001" />
+                </div>
+
+                <div>
+                  <label htmlFor='concentration' className='block text-sm font-medium mb-1'>
+                    Concentration
+                  </label>
+                  <Input id='concentration' name='concentration' type='text' placeholder="e.g., Marketing, Finance" />
+                </div>
               </div>
+
               <div>
-                <label htmlFor='organizationName' className='block text-sm font-medium text-gray-700'>
-                  Organization Name
+                <label htmlFor='objectives' className='block text-sm font-medium mb-1'>
+                  Project Objectives *
                 </label>
-                <Input id='organizationName' name='organizationName' type='text' required />
+                <Textarea id='objectives' name='objectives' rows={4} required placeholder="Describe the main objectives of your project" />
               </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor='studentNames' className='block text-sm font-medium mb-1'>
+                    Student Names
+                  </label>
+                  <Input id='studentNames' name='studentNames' type='text' placeholder="Comma-separated names" />
+                </div>
+
+                <div>
+                  <label htmlFor='faculty' className='block text-sm font-medium mb-1'>
+                    Faculty Advisor
+                  </label>
+                  <Input id='faculty' name='faculty' type='text' placeholder="Faculty name" />
+                </div>
+
+                <div>
+                  <label htmlFor='mentor' className='block text-sm font-medium mb-1'>
+                    Mentor
+                  </label>
+                  <Input id='mentor' name='mentor' type='text' placeholder="Mentor name" />
+                </div>
+
+                <div>
+                  <label htmlFor='projectLink' className='block text-sm font-medium mb-1'>
+                    Project Link
+                  </label>
+                  <Input id='projectLink' name='projectLink' type='url' placeholder="https://..." />
+                </div>
+              </div>
+
               <div>
-                <label htmlFor='description' className='block text-sm font-medium text-gray-700'>
-                  Short Description
+                <label htmlFor='projectFiles' className='block text-sm font-medium mb-1'>
+                  Upload Project File (Optional)
                 </label>
-                <Textarea id='description' name='description' required />
+                <Input id='projectFiles' name='projectFiles' type='file' onChange={handleFileChange} />
+                <p className="mt-1 text-sm text-muted-foreground">Upload any relevant document (proposal, report, or presentation)</p>
               </div>
-              <div>
-                <label htmlFor='fullDescription' className='block text-sm font-medium text-gray-700'>
-                  Full Description
-                </label>
-                <Textarea id='fullDescription' name='fullDescription' rows={6} required />
-              </div>
-              <div>
-                <label htmlFor='studentNames' className='block text-sm font-medium text-gray-700'>
-                  Student Names (comma-separated)
-                </label>
-                <Input id='studentNames' name='studentNames' type='text' required />
-              </div>
-              <div>
-                <label htmlFor='faculty' className='block text-sm font-medium text-gray-700'>
-                  Faculty
-                </label>
-                <Input id='faculty' name='faculty' type='text' required />
-              </div>
-              <div>
-                <label htmlFor='mentor' className='block text-sm font-medium text-gray-700'>
-                  Mentor
-                </label>
-                <Input id='mentor' name='mentor' type='text' required />
-              </div>
-              <div>
-                <label htmlFor='keywords' className='block text-sm font-medium text-gray-700'>
-                  Keywords (comma-separated)
-                </label>
-                <Input id='keywords' name='keywords' type='text' required />
-              </div>
-              <div>
-                <label htmlFor='projectFiles' className='block text-sm font-medium text-gray-700'>
-                  Upload Project File
-                </label>
-                <Input id='projectFiles' name='projectFiles' type='file' required onChange={handleFileChange} />
-                <p className="mt-1 text-sm text-gray-500">Upload any relevant document for your project (e.g., a proposal, report, or presentation).</p>
-              </div>
-              <Button type='submit'>Submit for Approval</Button>
+
+              <Button type='submit' className="w-full" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit for Approval'}
+              </Button>
             </form>
           )}
         </CardContent>
