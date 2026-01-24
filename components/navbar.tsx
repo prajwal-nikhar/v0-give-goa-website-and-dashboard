@@ -100,16 +100,18 @@ export function Navbar() {
                       <Menu className="h-5 w-5" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                    <div className="flex flex-col gap-6 mt-6">
-                      <Link href="/" className="flex items-center gap-2 mb-2">
-                        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                          <span className="text-lg font-bold text-primary-foreground">S</span>
-                        </div>
-                        <span className="text-xl font-bold">SLRI</span>
-                      </Link>
+                  <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
+                    <div className="flex flex-col h-full">
+                      <div className="px-6 py-6 border-b">
+                        <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
+                          <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                            <span className="text-xl font-bold text-primary-foreground">S</span>
+                          </div>
+                          <span className="text-2xl font-bold">SLRI</span>
+                        </Link>
+                      </div>
 
-                      <nav className="flex flex-col gap-3">
+                      <nav className="flex flex-col px-6 py-6 gap-1 flex-1">
                         {navItems.map((item) => (
                           <Link
                             key={item.href}
@@ -119,8 +121,8 @@ export function Navbar() {
                               setIsOpen(false)
                             }}
                             className={cn(
-                              "text-base font-medium transition-colors hover:text-primary py-2",
-                              activeLink === item.href ? "text-primary" : "text-muted-foreground",
+                              "text-lg font-medium transition-colors hover:text-primary hover:bg-muted px-4 py-3 rounded-lg",
+                              activeLink === item.href ? "text-primary bg-primary/10" : "text-muted-foreground",
                             )}
                           >
                             {item.name}
@@ -128,8 +130,8 @@ export function Navbar() {
                         ))}
                       </nav>
 
-                      {!user && <div className="flex flex-col gap-3 mt-4 pt-6 border-t">
-                        <Button asChild className="w-full">
+                      {!user && <div className="px-6 py-6 border-t mt-auto">
+                        <Button asChild className="w-full h-12 text-base">
                           <Link href="/admin-login" onClick={() => setIsOpen(false)}>
                             Admin Login
                           </Link>
