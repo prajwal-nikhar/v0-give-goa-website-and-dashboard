@@ -19,6 +19,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const router = useRouter()
 
@@ -30,37 +31,43 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
+    setIsLoading(true)
 
-    const {
-      data: { user },
-      error: loginError,
-    } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const {
+        data: { user },
+        error: loginError,
+      } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (loginError) {
-      setError(loginError.message)
-      return
-    }
+      if (loginError) {
+        setError(loginError.message)
+        setIsLoading(false)
+        return
+      }
 
-    if (!user) {
-      setError('Something went wrong. Please try again.')
-      return
-    }
+      if (!user) {
+        setError('Something went wrong. Please try again.')
+        setIsLoading(false)
+        return
+      }
 
-    const role = user.user_metadata?.role
+      const role = user.user_metadata?.role
 
-    if (role !== 'admin') {
-      setError('You are not authorized to access this page.')
-      await supabase.auth.signOut()
-      return
-    }
+      if (role !== 'admin') {
+        setError('You are not authorized to access this page.')
+        await supabase.auth.signOut()
+        setIsLoading(false)
+        return
+      }
 
-    router.refresh()
-    setTimeout(() => {
       window.location.href = '/admin'
-    }, 100)
+    } catch (err) {
+      setError('An error occurred. Please try again.')
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -103,8 +110,8 @@ export default function AdminLoginPage() {
               <p className="text-red-500 text-sm">{error}</p>
             )}
 
-            <Button type="submit" className="w-full">
-              Login
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
         </CardContent>
