@@ -6,17 +6,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.split('\n').filter(line => line.trim());
+  if (lines.length < 2) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows: Record<string, string>[] = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (const char of lines[i]) {
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    
+    const row: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || '';
+    });
+    rows.push(row);
+  }
+  
+  return rows;
+}
+
 export default function BulkUploadPage() {
   const [file, setFile] = React.useState<File | null>(null)
   const [uploading, setUploading] = React.useState(false)
   const [uploadStatus, setUploadStatus] = React.useState<"idle" | "success" | "error">("idle")
-  const [validationErrors, setValidationErrors] = React.useState<string[]>([])
+  const [message, setMessage] = React.useState("")
+  const [previewData, setPreviewData] = React.useState<Record<string, string>[]>([])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      const selectedFile = e.target.files[0]
+      setFile(selectedFile)
       setUploadStatus("idle")
-      setValidationErrors([])
+      setMessage("")
+      
+      const text = await selectedFile.text()
+      const parsed = parseCSV(text)
+      setPreviewData(parsed.slice(0, 5))
     }
   }
 
@@ -24,24 +64,54 @@ export default function BulkUploadPage() {
     if (!file) return
 
     setUploading(true)
-    // Simulate upload and validation
-    setTimeout(() => {
-      // Simulate validation errors
-      const errors = []
-      if (Math.random() > 0.7) {
-        errors.push("Row 5: Missing required field 'Project Title'")
-        errors.push("Row 12: Invalid SDG goal 'SDG 18'")
-        errors.push("Row 23: Year must be between 2018-2024")
+    setUploadStatus("idle")
+    
+    try {
+      const text = await file.text()
+      const projects = parseCSV(text)
+      
+      if (projects.length === 0) {
+        setUploadStatus("error")
+        setMessage("No valid data found in CSV file")
+        setUploading(false)
+        return
       }
 
-      if (errors.length > 0) {
-        setValidationErrors(errors)
-        setUploadStatus("error")
-      } else {
+      const response = await fetch('/api/bulk-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
         setUploadStatus("success")
+        setMessage(result.message || `Successfully imported ${result.count} projects`)
+      } else {
+        setUploadStatus("error")
+        setMessage(result.error || "Failed to upload projects")
       }
-      setUploading(false)
-    }, 2000)
+    } catch (error) {
+      setUploadStatus("error")
+      setMessage("Failed to process file")
+    }
+    
+    setUploading(false)
+  }
+
+  const downloadTemplate = () => {
+    const headers = "List of Projects,Sector,Geographical Scope,Group No,Yr,GroupID,conc,SDG,Link to the projects,Objectives"
+    const sample = "Sample Project,Education,Goa,1,2024,GRP001,Marketing,SDG 4,https://example.com,To improve education access"
+    const csv = headers + "\n" + sample
+    
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'projects_template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -55,7 +125,6 @@ export default function BulkUploadPage() {
 
       <div className="container py-8 max-w-4xl">
         <div className="space-y-6">
-          {/* Instructions */}
           <Card>
             <CardHeader>
               <CardTitle>Upload Instructions</CardTitle>
@@ -63,73 +132,56 @@ export default function BulkUploadPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  1
-                </div>
+                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
                 <div>
-                  <div className="font-medium mb-1">Download CSV Template</div>
-                  <p className="text-sm text-muted-foreground">
-                    Use our template to ensure your data is properly formatted
-                  </p>
+                  <div className="font-medium mb-1">Export Excel to CSV</div>
+                  <p className="text-sm text-muted-foreground">Save your Excel file as CSV (File → Save As → CSV)</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  2
-                </div>
+                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
                 <div>
-                  <div className="font-medium mb-1">Fill in Project Data</div>
-                  <p className="text-sm text-muted-foreground">Add your projects following the column specifications</p>
+                  <div className="font-medium mb-1">Upload CSV File</div>
+                  <p className="text-sm text-muted-foreground">Select your CSV file below</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  3
-                </div>
+                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
                 <div>
-                  <div className="font-medium mb-1">Upload and Validate</div>
-                  <p className="text-sm text-muted-foreground">Upload your file and review any validation messages</p>
+                  <div className="font-medium mb-1">Review and Import</div>
+                  <p className="text-sm text-muted-foreground">Preview your data and click upload</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Download Template */}
           <Card>
             <CardHeader>
-              <CardTitle>Step 1: Download Template</CardTitle>
-              <CardDescription>Get the CSV template with required columns</CardDescription>
+              <CardTitle>Expected Column Headers</CardTitle>
+              <CardDescription>Your CSV should have these columns (matching your Excel)</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full sm:w-auto bg-transparent">
-                <Download className="mr-2 h-4 w-4" />
-                Download CSV Template
-              </Button>
-              <div className="mt-4 p-4 bg-muted rounded-lg">
-                <div className="text-sm font-medium mb-2">Required Columns:</div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <div>• Project Title, Description, Full Description</div>
-                  <div>• Year, Sector, SDG Goals (comma-separated)</div>
-                  <div>• Partner Name, Partner Type, Location</div>
-                  <div>• Student Names (comma-separated), Faculty, Mentor</div>
-                  <div>• Keywords (comma-separated)</div>
-                </div>
+              <div className="p-4 bg-muted rounded-lg text-sm font-mono">
+                List of Projects, Sector, Geographical Scope, Group No, Yr, GroupID, conc, SDG, Link to the projects, Objectives
               </div>
+              <Button variant="outline" className="mt-4 bg-transparent" onClick={downloadTemplate}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Template
+              </Button>
             </CardContent>
           </Card>
 
-          {/* Upload File */}
           <Card>
             <CardHeader>
-              <CardTitle>Step 2: Upload CSV File</CardTitle>
-              <CardDescription>Select your completed CSV file to upload</CardDescription>
+              <CardTitle>Upload CSV File</CardTitle>
+              <CardDescription>Select your CSV file to upload</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors">
+              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                 <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <div className="space-y-2">
-                  <div className="font-medium">{file ? file.name : "Choose a CSV file or drag and drop"}</div>
-                  <div className="text-sm text-muted-foreground">CSV files only, max 10MB</div>
+                  <div className="font-medium">{file ? file.name : "Choose a CSV file"}</div>
+                  <div className="text-sm text-muted-foreground">CSV files only</div>
                 </div>
                 <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" id="file-upload" />
                 <label htmlFor="file-upload">
@@ -142,39 +194,56 @@ export default function BulkUploadPage() {
                 </label>
               </div>
 
+              {previewData.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">Preview (first 5 rows):</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border">
+                      <thead className="bg-muted">
+                        <tr>
+                          {Object.keys(previewData[0]).slice(0, 5).map(key => (
+                            <th key={key} className="p-2 text-left border">{key}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewData.map((row, i) => (
+                          <tr key={i}>
+                            {Object.values(row).slice(0, 5).map((val, j) => (
+                              <td key={j} className="p-2 border truncate max-w-[200px]">{val}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Found {previewData.length} rows to import (showing first 5)
+                  </p>
+                </div>
+              )}
+
               {file && (
                 <Button onClick={handleUpload} disabled={uploading} className="w-full">
-                  {uploading ? "Uploading..." : "Upload and Validate"}
+                  {uploading ? "Uploading..." : `Upload ${previewData.length} Projects`}
                 </Button>
               )}
             </CardContent>
           </Card>
 
-          {/* Upload Status */}
           {uploadStatus === "success" && (
             <Alert>
               <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>Upload Successful</AlertTitle>
-              <AlertDescription>
-                Your projects have been successfully uploaded and are now live on the platform.
-              </AlertDescription>
+              <AlertDescription>{message}</AlertDescription>
             </Alert>
           )}
 
           {uploadStatus === "error" && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Validation Errors</AlertTitle>
-              <AlertDescription>
-                <div className="mt-2 space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <div key={index} className="text-sm">
-                      • {error}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">Please fix these errors and try uploading again.</div>
-              </AlertDescription>
+              <AlertTitle>Upload Failed</AlertTitle>
+              <AlertDescription>{message}</AlertDescription>
             </Alert>
           )}
         </div>
