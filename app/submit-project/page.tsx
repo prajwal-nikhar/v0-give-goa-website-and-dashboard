@@ -42,6 +42,13 @@ const SECTOR_OPTIONS = [
   'Other',
 ];
 
+const PROGRAM_OPTIONS = [
+  'PGDM BDA',
+  'PGDM CORE',
+  'PGDM BIFS',
+  'PGDM HCM',
+];
+
 export default function SubmitProject() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -49,6 +56,7 @@ export default function SubmitProject() {
   const [submitting, setSubmitting] = useState(false);
   const [sector, setSector] = useState('');
   const [sdg, setSdg] = useState('');
+  const [program, setProgram] = useState('');
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -136,6 +144,7 @@ export default function SubmitProject() {
         group_id: groupId,
         concentration,
         sdg,
+        program,
         project_link: projectLink,
         student_names: studentNames ? studentNames.split(',').map((s) => s.trim()) : [],
         faculty,
@@ -218,6 +227,22 @@ export default function SubmitProject() {
                     </SelectTrigger>
                     <SelectContent>
                       {SDG_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor='program' className='block text-sm font-medium mb-1'>
+                    Program *
+                  </label>
+                  <Select value={program} onValueChange={setProgram} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROGRAM_OPTIONS.map((opt) => (
                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                       ))}
                     </SelectContent>

@@ -8,21 +8,75 @@ import { useEffect, useState } from "react"
 import { User } from "@supabase/supabase-js"
 import { getSupabaseClient } from "@/lib/supabase"
 
+interface Stats {
+  totalProjects: number;
+  studentsEngaged: number;
+  partnerOrgs: number;
+  sdgGoals: number;
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState<Stats>({
+    totalProjects: 0,
+    studentsEngaged: 0,
+    partnerOrgs: 0,
+    sdgGoals: 0,
+  });
+  const [loading, setLoading] = useState(true);
   const supabase = getSupabaseClient();
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data) {
-        setUser(data.user);
+    const fetchData = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData) {
+        setUser(userData.user);
       }
+
+      const { count: projectCount } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'approved');
+
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('student_names, organization_name, sdg')
+        .eq('status', 'approved');
+
+      let studentsCount = 0;
+      const orgsSet = new Set<string>();
+      const sdgSet = new Set<string>();
+
+      if (projects) {
+        projects.forEach(p => {
+          if (p.student_names && Array.isArray(p.student_names)) {
+            studentsCount += p.student_names.length;
+          }
+          if (p.organization_name) {
+            orgsSet.add(p.organization_name);
+          }
+          if (p.sdg) {
+            sdgSet.add(p.sdg);
+          }
+        });
+      }
+
+      setStats({
+        totalProjects: projectCount || 0,
+        studentsEngaged: studentsCount || 0,
+        partnerOrgs: orgsSet.size || 0,
+        sdgGoals: sdgSet.size || 0,
+      });
+
+      setLoading(false);
     };
 
-    fetchUser();
+    fetchData();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -67,19 +121,27 @@ export default function HomePage() {
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             <div className="text-center space-y-2">
-              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">156</div>
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
+                {loading ? '...' : stats.totalProjects}
+              </div>
               <div className="text-sm md:text-base text-muted-foreground">Total Projects</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">2,847</div>
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
+                {loading ? '...' : stats.studentsEngaged.toLocaleString()}
+              </div>
               <div className="text-sm md:text-base text-muted-foreground">Students Engaged</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">89</div>
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
+                {loading ? '...' : stats.partnerOrgs}
+              </div>
               <div className="text-sm md:text-base text-muted-foreground">Partner Organizations</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">17</div>
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
+                {loading ? '...' : stats.sdgGoals}
+              </div>
               <div className="text-sm md:text-base text-muted-foreground">SDG Goals Addressed</div>
             </div>
           </div>
@@ -98,35 +160,40 @@ export default function HomePage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader>
-                <Users className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Student-Led Projects</CardTitle>
-                <CardDescription>Empowering GIM students to lead community engagement initiatives</CardDescription>
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="text-center">
+                <Target className="h-10 w-10 mx-auto mb-2 text-primary" />
+                <CardTitle className="text-lg">SDG Alignment</CardTitle>
+                <CardDescription className="text-sm">
+                  Projects mapped to UN Sustainable Development Goals
+                </CardDescription>
               </CardHeader>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <Target className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>SDG Aligned</CardTitle>
-                <CardDescription>Every project contributes to UN Sustainable Development Goals</CardDescription>
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="text-center">
+                <Users className="h-10 w-10 mx-auto mb-2 text-primary" />
+                <CardTitle className="text-lg">Student-Led</CardTitle>
+                <CardDescription className="text-sm">
+                  Empowering students to drive community change
+                </CardDescription>
               </CardHeader>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <TrendingUp className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Real-Time Tracking</CardTitle>
-                <CardDescription>Live dashboard with insights and analytics on project impact</CardDescription>
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="text-center">
+                <TrendingUp className="h-10 w-10 mx-auto mb-2 text-primary" />
+                <CardTitle className="text-lg">Measurable Impact</CardTitle>
+                <CardDescription className="text-sm">
+                  Track and showcase real community outcomes
+                </CardDescription>
               </CardHeader>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <Globe className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Pan-India Reach</CardTitle>
-                <CardDescription>Projects spanning across Goa, Maharashtra, Karnataka, and beyond</CardDescription>
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="text-center">
+                <Globe className="h-10 w-10 mx-auto mb-2 text-primary" />
+                <CardTitle className="text-lg">Community Focus</CardTitle>
+                <CardDescription className="text-sm">
+                  Building partnerships across Goa and beyond
+                </CardDescription>
               </CardHeader>
             </Card>
           </div>
@@ -136,19 +203,22 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="py-12 md:py-16 lg:py-20 bg-primary/5">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold">Get Involved Today</h2>
+          <div className="max-w-2xl mx-auto text-center space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold">Ready to Make an Impact?</h2>
             <p className="text-base md:text-lg text-muted-foreground">
-              Whether you're a student looking to make an impact or an organization seeking to partner with GIM, we'd
-              love to hear from you.
+              Join our community of changemakers and contribute to sustainable development through meaningful projects.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg">
-                <Link href="/projects">Browse Projects</Link>
+                <Link href="/projects">
+                  Explore Projects <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/about">Learn More About SLRI</Link>
-              </Button>
+              {user && (
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/submit-project">Submit Your Project</Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
