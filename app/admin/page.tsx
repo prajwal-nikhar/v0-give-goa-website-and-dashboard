@@ -22,20 +22,31 @@ export default async function AdminDashboardPage() {
     }
   );
 
-  const { count: totalProjects } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = user?.user_metadata?.role === 'admin';
+  
+  console.log('Admin Dashboard - User:', user?.email, 'Role:', user?.user_metadata?.role, 'Is Admin:', isAdmin);
+
+  const { count: totalProjects, error: countError } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true });
 
-  const { count: pendingProjects } = await supabase
+  console.log('Total projects query - Count:', totalProjects, 'Error:', countError);
+
+  const { count: pendingProjects, error: pendingError } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'pending');
+
+  console.log('Pending projects query - Count:', pendingProjects, 'Error:', pendingError);
     
   const { data: recentProjects, error } = await supabase
     .from('projects')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(5);
+
+  console.log('Recent projects query - Data:', recentProjects?.length, 'Error:', error);
 
   return (
     <div className="min-h-screen bg-muted/30">
