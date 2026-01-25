@@ -131,13 +131,40 @@ export function Navbar() {
                         ))}
                       </nav>
 
-                      {!user && <div className="px-6 py-6 border-t mt-auto">
-                        <Button asChild className="w-full h-12 text-base">
-                          <Link href="/admin-login" onClick={() => setIsOpen(false)}>
-                            Admin Login
-                          </Link>
-                        </Button>
-                      </div>}
+                      <div className="px-6 py-6 border-t mt-auto">
+                        {user ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 px-2">
+                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-lg font-medium text-primary">{user.email?.[0].toUpperCase()}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{user.email}</p>
+                                {isAdmin && <p className="text-xs text-primary">Admin</p>}
+                              </div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              className="w-full h-12 text-base"
+                              onClick={async () => {
+                                if (supabase) {
+                                  await supabase.auth.signOut();
+                                  setIsOpen(false);
+                                  window.location.href = '/';
+                                }
+                              }}
+                            >
+                              Sign Out
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button asChild className="w-full h-12 text-base">
+                            <Link href="/admin-login" onClick={() => setIsOpen(false)}>
+                              Admin Login
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </SheetContent>
                 </Sheet>
