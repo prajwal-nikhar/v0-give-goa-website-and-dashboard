@@ -41,4 +41,4 @@ build = ["npm", "run", "build"]
 [userenv]
 
 [userenv.shared]
-NEXT_PUBLIC_POWERBI_EMBED_URL = "https://app.powerbi.com/reportEmbed?reportId=0b3cd72b-09f5-448e-9ca8-2d194aa4b0c0&autoAuth=true&ctid=1f436841-fd31-4aac-b492-9d1b692c157b"
+NEXT_PUBLIC_POWERBI_EMBED_URL = "https://app.powerbi.com/view?r=eyJrIjoiMTlkZjYyMzEtMDJhMS00NWI3LWIyZWEtZThiN2Y0MWMwYWI1IiwidCI6IjFmNDM2ODQxLWZkMzEtNGFhYy1iNDkyLTlkMWI2OTJjMTU3YiIsImMiOjEwfQ%3D%3D"
