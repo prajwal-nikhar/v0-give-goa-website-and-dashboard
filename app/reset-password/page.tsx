@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
-import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
+import { getSupabaseClient } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("")
@@ -23,13 +23,13 @@ export default function ResetPasswordPage() {
 
   const router = useRouter()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient()
 
   useEffect(() => {
-    // IMPORTANT: establish session from URL hash
+    if (!supabase) {
+      setError("Authentication service is not available")
+      return
+    }
     supabase.auth.getSession().then(({ data, error }) => {
       if (error || !data.session) {
         setError(
@@ -39,13 +39,18 @@ export default function ResetPasswordPage() {
       }
       setReady(true)
     })
-  }, [])
+  }, [supabase])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
+      return
+    }
+
+    if (!supabase) {
+      setError("Authentication service is not available")
       return
     }
 

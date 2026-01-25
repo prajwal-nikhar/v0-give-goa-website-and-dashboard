@@ -8,9 +8,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import { Pencil, Trash2 } from 'lucide-react';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -21,12 +21,13 @@ export default function AdminProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
 
   const fetchProjects = async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -62,6 +63,10 @@ export default function AdminProjectsPage() {
 
   const handleDelete = async () => {
     if (!projectToDelete) return;
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setIsDeleting(true);
 
     const { error } = await supabase

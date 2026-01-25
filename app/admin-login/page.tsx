@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Label } from '@/components/ui/label'
@@ -14,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { getSupabaseClient } from '@/lib/supabase'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
@@ -23,15 +23,18 @@ export default function AdminLoginPage() {
 
   const router = useRouter()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient()
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
+
+    if (!supabase) {
+      setError('Authentication service is not available')
+      setIsLoading(false)
+      return
+    }
 
     try {
       const {

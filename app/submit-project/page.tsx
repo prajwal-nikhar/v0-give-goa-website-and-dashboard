@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createBrowserClient } from '@supabase/ssr';
+import { getSupabaseClient } from '@/lib/supabase';
 
 const SDG_OPTIONS = [
   'SDG 1 - No Poverty',
@@ -59,13 +59,14 @@ export default function SubmitProject() {
   const [program, setProgram] = useState('');
   const router = useRouter();
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
     const checkUser = async () => {
+      if (!supabase) {
+        router.push('/student-login');
+        return;
+      }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/student-login');
@@ -74,7 +75,7 @@ export default function SubmitProject() {
       }
     };
     checkUser();
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -85,6 +86,12 @@ export default function SubmitProject() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
+
+    if (!supabase) {
+      console.error('Supabase not configured');
+      router.push('/student-login');
+      return;
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

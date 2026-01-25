@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { getSupabaseClient } from '@/lib/supabase';
 
 interface Project {
   id: string;
@@ -31,12 +31,13 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
 
   const handleApprove = async (project: Project) => {
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setActionInProgress(project.id);
     
     const { error } = await supabase
@@ -75,6 +76,11 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
   const handleRejectSubmit = async () => {
     if (!selectedProject || !rejectionReason.trim()) {
       toast.error('Please provide a reason for rejection');
+      return;
+    }
+    
+    if (!supabase) {
+      toast.error('Service not available');
       return;
     }
     

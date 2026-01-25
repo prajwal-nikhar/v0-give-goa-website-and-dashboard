@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -11,6 +10,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Pencil, Trash2 } from 'lucide-react';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export function ProjectClientPage({ project }: { project: any }) {
   const [status, setStatus] = useState(project.status);
@@ -20,12 +20,13 @@ export function ProjectClientPage({ project }: { project: any }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const router = useRouter();
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
 
   const handleApprove = async () => {
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setIsSubmitting(true);
 
     const { error } = await supabase
@@ -58,6 +59,11 @@ export function ProjectClientPage({ project }: { project: any }) {
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
       toast.error('Please provide a reason for rejection');
+      return;
+    }
+
+    if (!supabase) {
+      toast.error('Service not available');
       return;
     }
 
@@ -96,6 +102,10 @@ export function ProjectClientPage({ project }: { project: any }) {
   };
 
   const handleDelete = async () => {
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setIsSubmitting(true);
 
     const { error } = await supabase

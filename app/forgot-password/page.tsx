@@ -5,21 +5,23 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient();
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
+
+    if (!supabase) {
+      setError('Authentication service is not available');
+      return;
+    }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,

@@ -6,21 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function StudentLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!supabase) {
+      setError('Authentication service is not available');
+      return;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -30,7 +32,6 @@ export default function StudentLoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      // Redirect to the home page
       router.push('/');
     }
   };

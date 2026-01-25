@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function StudentSignupPage() {
   const [name, setName] = useState('');
@@ -16,10 +16,7 @@ export default function StudentSignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +27,11 @@ export default function StudentSignupPage() {
 
     if (!email.endsWith('@gmail.com')) {
       setError('Only @gmail.com emails are allowed');
+      return;
+    }
+
+    if (!supabase) {
+      setError('Authentication service is not available');
       return;
     }
 
@@ -46,7 +48,6 @@ export default function StudentSignupPage() {
     if (error) {
       setError(error.message);
     } else {
-      // Redirect to a success page or show a success message
       alert('Sign up successful! Please check your email to verify your account.');
       router.push('/student-login');
     }

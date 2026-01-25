@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, ArrowRight, Building2, Users } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
 import { useEffect, useState } from "react"
+import { getSupabaseClient } from "@/lib/supabase"
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -17,13 +17,10 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
   const [prevProjectId, setPrevProjectId] = useState<string | null>(null);
   const [nextProjectId, setNextProjectId] = useState<string | null>(null);
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !supabase) return;
     const fetchProject = async () => {
       const { data, error } = await supabase
         .from('projects')

@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { createBrowserClient } from '@supabase/ssr'
 import { toast } from 'sonner';
+import { getSupabaseClient } from '@/lib/supabase'
 
 export default function ProjectDetailsDialog({ project }: { project: any }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -13,10 +13,7 @@ export default function ProjectDetailsDialog({ project }: { project: any }) {
   const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseClient()
 
   const sendEmailNotification = async (updatedProject: any) => {
     try {
@@ -42,6 +39,10 @@ export default function ProjectDetailsDialog({ project }: { project: any }) {
   }
 
   const handleApprove = async () => {
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setIsSubmitting(true);
     const { data, error } = await supabase
       .from('projects')
@@ -62,6 +63,10 @@ export default function ProjectDetailsDialog({ project }: { project: any }) {
   }
 
   const handleDecline = async () => {
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setIsSubmitting(true);
     const { data, error } = await supabase
       .from('projects')

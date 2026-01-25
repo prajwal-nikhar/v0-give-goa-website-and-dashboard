@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { getSupabaseClient } from '@/lib/supabase';
 
 const SDG_OPTIONS = [
   'SDG 1 - No Poverty',
@@ -64,13 +64,15 @@ export default function EditProjectPage() {
     project_link: '',
   });
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
     const fetchProject = async () => {
+      if (!supabase) {
+        toast.error('Service not available');
+        router.push('/admin/projects');
+        return;
+      }
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -108,6 +110,10 @@ export default function EditProjectPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) {
+      toast.error('Service not available');
+      return;
+    }
     setSaving(true);
 
     const { error } = await supabase

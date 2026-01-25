@@ -3,17 +3,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export function ProjectClientPage({ project }: { project: any }) {
   const [status, setStatus] = useState<'approved' | 'declined' | null>(null);
   const [justification, setJustification] = useState('');
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSupabaseClient();
   const router = useRouter();
 
   const handleStatusUpdate = async () => {
@@ -21,6 +18,11 @@ export function ProjectClientPage({ project }: { project: any }) {
 
     if (status === 'declined' && !justification) {
       toast.error('Please provide a justification for declining the project.');
+      return;
+    }
+
+    if (!supabase) {
+      toast.error('Service not available');
       return;
     }
 
