@@ -39,7 +39,7 @@ export default async function ProjectDetailsPage({ params: paramsPromise }: { pa
   const studentNames = project.student_names || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
       <div className="mb-6">
         <Button asChild variant="outline" size="sm">
           <Link href="/admin">

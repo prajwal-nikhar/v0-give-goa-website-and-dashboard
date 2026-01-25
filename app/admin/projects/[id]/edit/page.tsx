@@ -152,7 +152,7 @@ export default function EditProjectPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10 max-w-3xl">
       <Button variant="ghost" asChild className="mb-4">
         <Link href="/admin/projects">
           <ArrowLeft className="h-4 w-4 mr-2" />
