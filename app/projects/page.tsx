@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { getSupabaseClient } from '@/lib/supabase';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PROJECTS_PER_PAGE = 12;
 
 const PROGRAM_START_YEARS: Record<string, number> = {
   'PGDM CORE': 2005,
@@ -46,6 +48,7 @@ export default function ProjectsPage() {
   const [yearFilter, setYearFilter] = useState('all');
   const [sdgFilter, setSdgFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const supabase = getSupabaseClient();
 
   const currentYear = new Date().getFullYear();
@@ -105,6 +108,17 @@ export default function ProjectsPage() {
       })
       .sort((a, b) => a.title?.localeCompare(b.title || '') || 0);
   }, [projects, searchTerm, programFilter, yearFilter, sdgFilter]);
+
+  const totalPages = Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE);
+  
+  const paginatedProjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * PROJECTS_PER_PAGE;
+    return filteredProjects.slice(startIndex, startIndex + PROJECTS_PER_PAGE);
+  }, [filteredProjects, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, programFilter, yearFilter, sdgFilter]);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -243,45 +257,103 @@ export default function ProjectsPage() {
           )}
         </div>
       ) : (
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-          {filteredProjects.map(project => (
-            <Card key={project.id} className='overflow-hidden hover:shadow-lg transition-shadow'>
-              <Link href={`/projects/${project.id}`}>
-                <div className='h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center'>
-                  {project.image_url ? (
-                    <img src={project.image_url} alt={project.title} className='w-full h-full object-cover' />
-                  ) : (
-                    <div className='text-4xl font-bold text-primary/30'>
-                      {project.title?.charAt(0) || 'P'}
-                    </div>
-                  )}
-                </div>
-                <CardContent className='p-4'>
-                  <h2 className='text-lg font-bold mb-2 line-clamp-2'>{project.title}</h2>
-                  <p className='text-sm text-muted-foreground mb-3 line-clamp-2'>
-                    {project.objectives || project.description}
-                  </p>
-                  <div className='flex flex-wrap gap-2 mb-3'>
-                    {project.program && (
-                      <Badge variant='default' className='text-xs'>{project.program}</Badge>
-                    )}
-                    {project.year && (
-                      <Badge variant='outline' className='text-xs'>{project.year}</Badge>
-                    )}
-                    {project.sdg && (
-                      <Badge variant='secondary' className='text-xs'>{project.sdg.split(' - ')[0]}</Badge>
+        <>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+            {paginatedProjects.map(project => (
+              <Card key={project.id} className='overflow-hidden hover:shadow-lg transition-shadow'>
+                <Link href={`/projects/${project.id}`}>
+                  <div className='h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center'>
+                    {project.image_url ? (
+                      <img src={project.image_url} alt={project.title} className='w-full h-full object-cover' />
+                    ) : (
+                      <div className='text-4xl font-bold text-primary/30'>
+                        {project.title?.charAt(0) || 'P'}
+                      </div>
                     )}
                   </div>
-                  {project.geographical_scope && (
-                    <p className='text-xs text-muted-foreground'>
-                      Location: {project.geographical_scope}
+                  <CardContent className='p-4'>
+                    <h2 className='text-lg font-bold mb-2 line-clamp-2'>{project.title}</h2>
+                    <p className='text-sm text-muted-foreground mb-3 line-clamp-2'>
+                      {project.objectives || project.description}
                     </p>
-                  )}
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
-        </div>
+                    <div className='flex flex-wrap gap-2 mb-3'>
+                      {project.program && (
+                        <Badge variant='default' className='text-xs'>{project.program}</Badge>
+                      )}
+                      {project.year && (
+                        <Badge variant='outline' className='text-xs'>{project.year}</Badge>
+                      )}
+                      {project.sdg && (
+                        <Badge variant='secondary' className='text-xs'>{project.sdg.split(' - ')[0]}</Badge>
+                      )}
+                    </div>
+                    {project.geographical_scope && (
+                      <p className='text-xs text-muted-foreground'>
+                        Location: {project.geographical_scope}
+                      </p>
+                    )}
+                  </CardContent>
+                </Link>
+              </Card>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className='flex items-center justify-center gap-2 mt-8'>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className='h-4 w-4 mr-1' />
+                Previous
+              </Button>
+              
+              <div className='flex items-center gap-1'>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className='w-9 h-9 p-0'
+                      >
+                        {page}
+                      </Button>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return <span key={page} className='px-1 text-muted-foreground'>...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className='h-4 w-4 ml-1' />
+              </Button>
+            </div>
+          )}
+
+          <p className='text-center text-sm text-muted-foreground mt-4'>
+            Page {currentPage} of {totalPages}
+          </p>
+        </>
       )}
     </div>
   );
