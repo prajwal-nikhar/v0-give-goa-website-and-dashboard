@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  devIndicators: false,
   allowedDevOrigins: [
     'localhost',
     '127.0.0.1',
