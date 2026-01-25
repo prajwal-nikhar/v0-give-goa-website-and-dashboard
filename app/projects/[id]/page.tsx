@@ -70,7 +70,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-screen">
       <div className="border-b bg-muted/30">
-        <div className="container py-4">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4">
           <Button variant="ghost" asChild>
             <Link href="/projects">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -80,7 +80,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <div className="container py-8 space-y-8">
+      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10 space-y-8">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {project.keywords?.map((keyword: string) => (

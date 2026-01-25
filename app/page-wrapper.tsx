@@ -19,12 +19,33 @@ export default function PageWrapper({
   const supabase = getSupabaseClient();
 
   useEffect(() => {
+    // Reset loading state on every page navigation
+    setIsLoading(true);
+    
     const projectDashboardRegex = /^\/admin\/dashboard\/(.+)/;
-    const match = pathname.match(projectDashboardRegex);
+    const projectDetailRegex = /^\/projects\/(.+)/;
+    const adminProjectRegex = /^\/admin\/projects\/(.+)/;
+    
+    const dashboardMatch = pathname.match(projectDashboardRegex);
+    const projectMatch = pathname.match(projectDetailRegex);
+    const adminProjectMatch = pathname.match(adminProjectRegex);
 
-    if (match) {
-      const projectId = match[1];
-      const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(projectId);
+    // Get a readable page name from the path
+    const getPageName = (path: string) => {
+      const segments = path.split('/').filter(Boolean);
+      if (segments.length === 0) return 'home';
+      // Use the last meaningful segment, capitalize it
+      const lastSegment = segments[segments.length - 1];
+      // Skip UUID-like segments
+      if (/^[0-9a-fA-F-]{36}$/.test(lastSegment)) {
+        return segments.length > 1 ? segments[segments.length - 2] : 'project';
+      }
+      return lastSegment.replace(/-/g, ' ');
+    };
+
+    if (dashboardMatch || projectMatch || adminProjectMatch) {
+      const projectId = dashboardMatch?.[1] || projectMatch?.[1] || adminProjectMatch?.[1];
+      const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(projectId || '');
 
       if (isUUID && supabase) {
         const fetchProjectTitle = async () => {
@@ -43,10 +64,10 @@ export default function PageWrapper({
 
         fetchProjectTitle();
       } else {
-        setPageName(pathname.replace('/', '') || 'home');
+        setPageName(getPageName(pathname));
       }
     } else {
-      setPageName(pathname.replace('/', '') || 'home');
+      setPageName(getPageName(pathname));
     }
   }, [pathname, supabase]);
 

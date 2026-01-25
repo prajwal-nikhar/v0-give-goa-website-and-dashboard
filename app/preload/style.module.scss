@@ -2,9 +2,10 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
+  width: 100vw;
   height: 100vh;
-  background: #000;
+  height: 100dvh;
+  background: #000 !important;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -12,8 +13,9 @@
   font-size: 2rem;
   font-weight: bold;
   text-transform: uppercase;
-  z-index: 9999; // Ensure it stays on top
+  z-index: 99999;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .introduction p {
