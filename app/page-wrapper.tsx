@@ -56,6 +56,11 @@ export default function PageWrapper({
 
   return (
     <>
+      <AnimatePresence mode="wait">
+        {isLoading && pageName && (
+          <Preloads key="preload" pageName={pageName} onComplete={handlePreloadComplete} />
+        )}
+      </AnimatePresence>
       <main className='min-h-screen'>{children}</main>
       <Analytics />
     </>
