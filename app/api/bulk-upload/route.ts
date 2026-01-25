@@ -13,16 +13,16 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
-        { error: 'Supabase not configured' },
+        { error: 'Supabase service role key not configured. Please add SUPABASE_SERVICE_ROLE_KEY secret.' },
         { status: 500 }
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const mappedProjects = projects.map((row: Record<string, string>) => ({
       title: row['List of Projects'] || row['Project Title'] || row['title'] || 'Untitled Project',
