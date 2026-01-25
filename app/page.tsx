@@ -45,7 +45,7 @@ export default function HomePage() {
 
       const { data: projects } = await supabase
         .from('projects')
-        .select('student_names, organization_name, sdg')
+        .select('student_names, organization_name, sdg, group_no')
         .eq('status', 'approved');
 
       let studentsCount = 0;
@@ -54,14 +54,23 @@ export default function HomePage() {
 
       if (projects) {
         projects.forEach(p => {
+          // Count students from student_names array or estimate 4 per group if group_no exists
           if (p.student_names && Array.isArray(p.student_names)) {
             studentsCount += p.student_names.length;
+          } else if (p.group_no) {
+            studentsCount += 4; // Average group size for bulk uploaded projects
           }
           if (p.organization_name) {
             orgsSet.add(p.organization_name);
           }
+          // Parse SDG field which may contain multiple goals (e.g., "SDG 1, SDG 4")
           if (p.sdg) {
-            sdgSet.add(p.sdg);
+            const sdgMatches = p.sdg.match(/SDG\s*\d+/gi);
+            if (sdgMatches) {
+              sdgMatches.forEach((s: string) => sdgSet.add(s.toUpperCase().replace(/\s+/g, ' ')));
+            } else {
+              sdgSet.add(p.sdg);
+            }
           }
         });
       }
