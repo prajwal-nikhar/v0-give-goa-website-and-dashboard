@@ -6,114 +6,187 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { createBrowserClient } from '@supabase/ssr';
+import { toast } from 'sonner';
+import { Pencil, Trash2 } from 'lucide-react';
 
-export default function ProjectsPage() {
+export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState('title');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  const fetchProjects = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching projects:', error);
+    } else {
+      setProjects(data || []);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchProjects = async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('status', 'approved');
-
-      if (error) {
-        console.error('Error fetching projects:', error);
-      } else {
-        setProjects(data || []);
-      }
-    };
-
     fetchProjects();
   }, []);
 
-  const filteredAndSortedProjects = useMemo(() => {
+  const filteredProjects = useMemo(() => {
     return projects
-      .filter(project =>
-        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.keywords?.some((k: string) =>
-          k.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      )
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [projects, searchTerm]);
+      .filter(project => {
+        const matchesSearch = project.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          project.submitter_email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [projects, searchTerm, statusFilter]);
 
-  if (filteredAndSortedProjects.length === 0) {
+  const openDeleteDialog = (project: any) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!projectToDelete) return;
+    setIsDeleting(true);
+
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectToDelete.id);
+
+    if (error) {
+      toast.error('Failed to delete project');
+      console.error(error);
+    } else {
+      toast.success('Project deleted');
+      setProjects(projects.filter(p => p.id !== projectToDelete.id));
+    }
+
+    setIsDeleting(false);
+    setDeleteDialogOpen(false);
+    setProjectToDelete(null);
+  };
+
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <h2 className="text-2xl font-bold mb-4">No projects available</h2>
-        <p className="text-muted-foreground">
-          Please check back later or try a different search term.
-        </p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+        <p className="text-muted-foreground">Loading projects...</p>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold mb-4 md:mb-0">Projects</h1>
-        <div className="flex items-center gap-4">
-          <Input
-            placeholder="Search projects..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="max-w-xs"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">Sort by</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuRadioGroup value={sortOption} onValueChange={setSortOption}>
-                <DropdownMenuRadioItem value="title">Title</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Manage Projects</h1>
+          <p className="text-muted-foreground mt-1">View, edit, or delete projects</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredAndSortedProjects.map(project => (
-          <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <Link href={`/projects/${project.id}`}>
-              <img
-                src={project.image_url || 'https://source.unsplash.com/random/800x600?project'}
-                alt={project.title}
-                className="w-full h-48 object-cover"
-              />
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-2">{project.title}</h2>
-                <p className="text-muted-foreground mb-4">{project.description}</p>
-                {project.keywords && (
-                  <div className="flex flex-wrap gap-2">
-                    {project.keywords.map((keyword: string) => (
-                      <Badge key={keyword} variant="secondary">
-                        {keyword}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Link>
-          </Card>
-        ))}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <Input
+          placeholder="Search by title or email..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      <p className="text-sm text-muted-foreground mb-4">
+        Showing {filteredProjects.length} of {projects.length} projects
+      </p>
+
+      {filteredProjects.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">No projects found.</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredProjects.map(project => (
+            <Card key={project.id} className="p-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold">{project.title}</h3>
+                    <Badge 
+                      variant={project.status === 'approved' ? 'default' : project.status === 'rejected' ? 'destructive' : 'secondary'}
+                    >
+                      {project.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {project.submitter_email} • {new Date(project.created_at).toLocaleDateString()}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {project.program && <Badge variant="outline">{project.program}</Badge>}
+                    {project.year && <Badge variant="outline">{project.year}</Badge>}
+                    {project.sdg && <Badge variant="outline">{project.sdg.split(' - ')[0]}</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/admin/projects/${project.id}/edit`}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Link>
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(project)}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{projectToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
