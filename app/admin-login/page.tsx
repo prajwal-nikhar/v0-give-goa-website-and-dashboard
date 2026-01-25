@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
         return
       }
 
-      window.location.href = '/admin'
+      window.location.href = '/'
     } catch (err) {
       setError('An error occurred. Please try again.')
       setIsLoading(false)
