@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -22,38 +22,20 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Users, Target, MapPin, Building2, Calendar, TrendingUp, Filter } from 'lucide-react'
 import { IndiaMap } from '@/components/india-map'
+import { getSupabaseClient } from '@/lib/supabase'
 
-const projectsByYear = [
-  { year: '2019', projects: 45, students: 320 },
-  { year: '2020', projects: 52, students: 385 },
-  { year: '2021', projects: 68, students: 465 },
-  { year: '2022', projects: 78, students: 520 },
-  { year: '2023', projects: 92, students: 640 },
-  { year: '2024', projects: 105, students: 735 },
-]
-
-const projectsBySDG = [
-  { sdg: 'Quality Education', count: 78, color: 'hsl(10, 70%, 55%)' },
-  { sdg: 'Good Health', count: 65, color: 'hsl(120, 65%, 45%)' },
-  { sdg: 'Clean Water', count: 52, color: 'hsl(200, 75%, 50%)' },
-  { sdg: 'Zero Hunger', count: 48, color: 'hsl(40, 80%, 55%)' },
-  { sdg: 'Decent Work', count: 45, color: 'hsl(350, 70%, 50%)' },
-  { sdg: 'Other SDGs', count: 152, color: 'hsl(260, 50%, 50%)' },
-]
-
-const projectsBySector = [
-  { sector: 'Education', count: 145 },
-  { sector: 'Healthcare', count: 98 },
-  { sector: 'Environment', count: 76 },
-  { sector: 'Social Welfare', count: 67 },
-  { sector: 'Infrastructure', count: 54 },
-]
-
-const projectsByPartner = [
-  { type: 'NGO', count: 185, percentage: 42 },
-  { type: 'Government', count: 165, percentage: 38 },
-  { type: 'Private Sector', count: 90, percentage: 20 },
-]
+interface Project {
+  id: string;
+  title: string;
+  year: string | null;
+  sdg: string | null;
+  sector: string | null;
+  program: string | null;
+  organization_name: string | null;
+  geographical_scope: string | null;
+  group_no: string | null;
+  student_names: string[] | null;
+}
 
 interface StateData {
   projects: number;
@@ -65,47 +47,265 @@ interface GeographyData {
   [key: string]: StateData;
 }
 
-const geographyData: GeographyData = {
-  'Goa': { projects: 395, partners: 25, coordinates: [74.05, 15.29] },
-  'Maharashtra': { projects: 20, partners: 5, coordinates: [75.5, 19.5] },
-  'Karnataka': { projects: 15, partners: 4, coordinates: [75.5, 14.5] },
-  'Delhi': { projects: 10, partners: 2, coordinates: [77.2, 28.6] },
+const programs: { [key: string]: number } = {
+  'PGDM CORE': 2005,
+  'PGDM BDA': 2020,
+  'PGDM BIFS': 2016,
+  'PGDM HCM': 2022,
 };
 
-const programs: { [key: string]: number } = {
-  'Core': 2005,
-  'BDA': 2020,
-  'BIFS': 2018,
-  'HCM': 2022,
-};
+const SDG_COLORS = [
+  'hsl(10, 70%, 55%)',
+  'hsl(40, 80%, 55%)',
+  'hsl(120, 65%, 45%)',
+  'hsl(200, 75%, 50%)',
+  'hsl(260, 50%, 50%)',
+  'hsl(350, 70%, 50%)',
+  'hsl(180, 60%, 45%)',
+  'hsl(300, 50%, 55%)',
+  'hsl(60, 70%, 50%)',
+  'hsl(220, 60%, 55%)',
+];
 
 export default function DashboardPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState('all')
   const [selectedSDG, setSelectedSDG] = useState('all')
   const [selectedSector, setSelectedSector] = useState('all')
-  const [selectedPartner, setSelectedPartner] = useState('all')
   const [selectedProgram, setSelectedProgram] = useState('all');
 
-  const availableYears = useMemo(() => {
-    if (selectedProgram === 'all') {
-      const allYears = [];
-      for (let i = new Date().getFullYear(); i >= 2005; i--) {
-        allYears.push(i.toString());
+  const supabase = getSupabaseClient();
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
       }
-      return allYears;
+
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, title, year, sdg, sector, program, organization_name, geographical_scope, group_no, student_names')
+        .eq('status', 'approved');
+
+      if (error) {
+        console.error('Error fetching projects:', error);
+      } else {
+        setProjects(data || []);
+      }
+      setLoading(false);
+    };
+
+    fetchProjects();
+  }, [supabase]);
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      if (selectedYear !== 'all' && p.year !== selectedYear) return false;
+      if (selectedSDG !== 'all' && (!p.sdg || !p.sdg.toLowerCase().includes(selectedSDG.toLowerCase()))) return false;
+      if (selectedSector !== 'all' && (!p.sector || !p.sector.toLowerCase().includes(selectedSector.toLowerCase()))) return false;
+      if (selectedProgram !== 'all' && (!p.program || !p.program.includes(selectedProgram))) return false;
+      return true;
+    });
+  }, [projects, selectedYear, selectedSDG, selectedSector, selectedProgram]);
+
+  const stats = useMemo(() => {
+    let studentsCount = 0;
+    const orgsSet = new Set<string>();
+    const geoSet = new Set<string>();
+
+    filteredProjects.forEach(p => {
+      if (p.student_names && Array.isArray(p.student_names)) {
+        studentsCount += p.student_names.length;
+      } else if (p.group_no) {
+        studentsCount += 4;
+      }
+      if (p.organization_name) {
+        orgsSet.add(p.organization_name);
+      }
+      if (p.geographical_scope) {
+        geoSet.add(p.geographical_scope);
+      }
+    });
+
+    return {
+      totalProjects: filteredProjects.length,
+      studentsEngaged: studentsCount,
+      partnerOrgs: orgsSet.size,
+      geographicReach: geoSet.size || 1,
+    };
+  }, [filteredProjects]);
+
+  const availableYears = useMemo(() => {
+    const yearsFromData = new Set<string>();
+    projects.forEach(p => {
+      if (p.year) yearsFromData.add(p.year);
+    });
+    
+    if (selectedProgram !== 'all' && programs[selectedProgram]) {
+      const startYear = programs[selectedProgram];
+      return Array.from(yearsFromData)
+        .filter(y => parseInt(y) >= startYear)
+        .sort((a, b) => parseInt(b) - parseInt(a));
     }
-    const startYear = programs[selectedProgram];
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let i = currentYear; i >= startYear; i--) {
-      years.push(i.toString());
-    }
-    return years;
-  }, [selectedProgram]);
+    
+    return Array.from(yearsFromData).sort((a, b) => parseInt(b) - parseInt(a));
+  }, [projects, selectedProgram]);
+
+  const availableSDGs = useMemo(() => {
+    const sdgSet = new Set<string>();
+    projects.forEach(p => {
+      if (p.sdg) {
+        const matches = p.sdg.match(/SDG\s*\d+/gi);
+        if (matches) {
+          matches.forEach(s => sdgSet.add(s.toUpperCase().replace(/\s+/g, ' ')));
+        }
+      }
+    });
+    return Array.from(sdgSet).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ''));
+      const numB = parseInt(b.replace(/\D/g, ''));
+      return numA - numB;
+    });
+  }, [projects]);
+
+  const availableSectors = useMemo(() => {
+    const sectorSet = new Set<string>();
+    projects.forEach(p => {
+      if (p.sector) sectorSet.add(p.sector);
+    });
+    return Array.from(sectorSet).sort();
+  }, [projects]);
+
+  const projectsByYear = useMemo(() => {
+    const yearMap: { [key: string]: { projects: number; students: number } } = {};
+    
+    filteredProjects.forEach(p => {
+      const year = p.year || 'Unknown';
+      if (!yearMap[year]) {
+        yearMap[year] = { projects: 0, students: 0 };
+      }
+      yearMap[year].projects++;
+      if (p.student_names && Array.isArray(p.student_names)) {
+        yearMap[year].students += p.student_names.length;
+      } else if (p.group_no) {
+        yearMap[year].students += 4;
+      }
+    });
+
+    return Object.entries(yearMap)
+      .map(([year, data]) => ({ year, ...data }))
+      .filter(d => d.year !== 'Unknown')
+      .sort((a, b) => parseInt(a.year) - parseInt(b.year));
+  }, [filteredProjects]);
+
+  const projectsBySDG = useMemo(() => {
+    const sdgMap: { [key: string]: number } = {};
+    
+    filteredProjects.forEach(p => {
+      if (p.sdg) {
+        const matches = p.sdg.match(/SDG\s*\d+/gi);
+        if (matches) {
+          matches.forEach(s => {
+            const normalized = s.toUpperCase().replace(/\s+/g, ' ');
+            sdgMap[normalized] = (sdgMap[normalized] || 0) + 1;
+          });
+        }
+      }
+    });
+
+    return Object.entries(sdgMap)
+      .map(([sdg, count], index) => ({
+        sdg,
+        count,
+        color: SDG_COLORS[index % SDG_COLORS.length],
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [filteredProjects]);
+
+  const projectsBySector = useMemo(() => {
+    const sectorMap: { [key: string]: number } = {};
+    
+    filteredProjects.forEach(p => {
+      const sector = p.sector || 'Other';
+      sectorMap[sector] = (sectorMap[sector] || 0) + 1;
+    });
+
+    return Object.entries(sectorMap)
+      .map(([sector, count]) => ({ sector, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [filteredProjects]);
+
+  const projectsByProgram = useMemo(() => {
+    const programMap: { [key: string]: number } = {};
+    
+    filteredProjects.forEach(p => {
+      const program = p.program || 'Other';
+      programMap[program] = (programMap[program] || 0) + 1;
+    });
+
+    const total = filteredProjects.length || 1;
+    return Object.entries(programMap)
+      .map(([type, count]) => ({
+        type,
+        count,
+        percentage: Math.round((count / total) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredProjects]);
+
+  const geographyData: GeographyData = useMemo(() => {
+    const geoMap: { [key: string]: { projects: number; partners: Set<string> } } = {
+      'Goa': { projects: 0, partners: new Set() },
+    };
+    
+    filteredProjects.forEach(p => {
+      const geo = p.geographical_scope || 'Goa';
+      if (!geoMap[geo]) {
+        geoMap[geo] = { projects: 0, partners: new Set() };
+      }
+      geoMap[geo].projects++;
+      if (p.organization_name) {
+        geoMap[geo].partners.add(p.organization_name);
+      }
+    });
+
+    const result: GeographyData = {};
+    const defaultCoords: { [key: string]: [number, number] } = {
+      'Goa': [74.05, 15.29],
+      'Maharashtra': [75.5, 19.5],
+      'Karnataka': [75.5, 14.5],
+      'Delhi': [77.2, 28.6],
+      'Kerala': [76.5, 10.5],
+      'Tamil Nadu': [78.5, 11.0],
+    };
+
+    Object.entries(geoMap).forEach(([key, value]) => {
+      result[key] = {
+        projects: value.projects,
+        partners: value.partners.size,
+        coordinates: defaultCoords[key] || [74.05, 15.29],
+      };
+    });
+
+    return result;
+  }, [filteredProjects]);
+
+  if (loading) {
+    return (
+      <div className='min-h-screen bg-background flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='text-xl font-medium'>Loading dashboard data...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-background'>
-      {/* Header */}
       <header className='border-b bg-card'>
         <div className='container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10'>
           <div className='flex flex-col gap-3'>
@@ -116,17 +316,14 @@ export default function DashboardPage() {
               </p>
             </div>
             <p className='text-sm md:text-base text-muted-foreground max-w-4xl leading-relaxed'>
-              Filter projects by year, SDG alignment, sector, partner type, and geography to understand how student
-              initiatives contribute to sustainable development across Goa and beyond. This dashboard is dynamically
-              updated from the GiveGoa data repository and supports institutional reporting, accreditation, and
-              stakeholder engagement.
+              Filter projects by year, SDG alignment, sector, and program to understand how student
+              initiatives contribute to sustainable development across Goa and beyond.
             </p>
           </div>
         </div>
       </header>
 
       <main className='container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10'>
-        {/* Filters Section */}
         <Card className='mb-8 md:mb-10'>
           <CardHeader className='pb-6'>
             <CardTitle className='flex items-center gap-2 text-xl'>
@@ -138,7 +335,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className='pt-0'>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5'>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5'>
               <div className='space-y-2'>
                 <label className='text-sm font-medium leading-none'>Program</label>
                 <Select value={selectedProgram} onValueChange={setSelectedProgram}>
@@ -181,10 +378,11 @@ export default function DashboardPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='all'>All SDGs</SelectItem>
-                    <SelectItem value='education'>Quality Education (SDG 4)</SelectItem>
-                    <SelectItem value='health'>Good Health (SDG 3)</SelectItem>
-                    <SelectItem value='water'>Clean Water (SDG 6)</SelectItem>
-                    <SelectItem value='hunger'>Zero Hunger (SDG 2)</SelectItem>
+                    {availableSDGs.map((sdg) => (
+                      <SelectItem key={sdg} value={sdg}>
+                        {sdg}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -197,25 +395,11 @@ export default function DashboardPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='all'>All Sectors</SelectItem>
-                    <SelectItem value='education'>Education</SelectItem>
-                    <SelectItem value='healthcare'>Healthcare</SelectItem>
-                    <SelectItem value='environment'>Environment</SelectItem>
-                    <SelectItem value='social'>Social Welfare</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='space-y-2'>
-                <label className='text-sm font-medium leading-none'>Partner Type</label>
-                <Select value={selectedPartner} onValueChange={setSelectedPartner}>
-                  <SelectTrigger>
-                    <SelectValue placeholder='All Partners' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='all'>All Partners</SelectItem>
-                    <SelectItem value='ngo'>NGO</SelectItem>
-                    <SelectItem value='government'>Government</SelectItem>
-                    <SelectItem value='private'>Private Sector</SelectItem>
+                    {availableSectors.map((sector) => (
+                      <SelectItem key={sector} value={sector}>
+                        {sector}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -229,7 +413,6 @@ export default function DashboardPage() {
                   setSelectedYear('all')
                   setSelectedSDG('all')
                   setSelectedSector('all')
-                  setSelectedPartner('all')
                   setSelectedProgram('all')
                 }}
               >
@@ -239,7 +422,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Key Metrics */}
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 mb-8 md:mb-10'>
           <Card>
             <CardHeader className='pb-2'>
@@ -248,11 +430,8 @@ export default function DashboardPage() {
             <CardContent>
               <div className='flex items-center justify-between'>
                 <div className='flex-1'>
-                  <div className='text-4xl font-bold'>440</div>
-                  <p className='text-xs text-muted-foreground mt-2 flex items-center gap-1'>
-                    <TrendingUp className='h-3 w-3 flex-shrink-0 text-green-500' />
-                    <span className='text-green-500 font-medium'>+14%</span> from last year
-                  </p>
+                  <div className='text-4xl font-bold'>{stats.totalProjects.toLocaleString()}</div>
+                  <p className='text-xs text-muted-foreground mt-2'>Approved projects</p>
                 </div>
                 <Target className='h-10 w-10 flex-shrink-0 text-muted-foreground opacity-50' />
               </div>
@@ -266,11 +445,8 @@ export default function DashboardPage() {
             <CardContent>
               <div className='flex items-center justify-between'>
                 <div className='flex-1'>
-                  <div className='text-4xl font-bold'>3,065</div>
-                  <p className='text-xs text-muted-foreground mt-2 flex items-center gap-1'>
-                    <TrendingUp className='h-3 w-3 flex-shrink-0 text-green-500' />
-                    <span className='text-green-500 font-medium'>+15%</span> from last year
-                  </p>
+                  <div className='text-4xl font-bold'>{stats.studentsEngaged.toLocaleString()}</div>
+                  <p className='text-xs text-muted-foreground mt-2'>Participating students</p>
                 </div>
                 <Users className='h-10 w-10 flex-shrink-0 text-muted-foreground opacity-50' />
               </div>
@@ -284,7 +460,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className='flex items-center justify-between'>
                 <div className='flex-1'>
-                  <div className='text-4xl font-bold'>156</div>
+                  <div className='text-4xl font-bold'>{stats.partnerOrgs.toLocaleString()}</div>
                   <p className='text-xs text-muted-foreground mt-2'>Across all sectors</p>
                 </div>
                 <Building2 className='h-10 w-10 flex-shrink-0 text-muted-foreground opacity-50' />
@@ -299,8 +475,8 @@ export default function DashboardPage() {
             <CardContent>
               <div className='flex items-center justify-between'>
                 <div className='flex-1'>
-                  <div className='text-4xl font-bold'>12</div>
-                  <p className='text-xs text-muted-foreground mt-2'>Districts covered</p>
+                  <div className='text-4xl font-bold'>{stats.geographicReach}</div>
+                  <p className='text-xs text-muted-foreground mt-2'>Regions covered</p>
                 </div>
                 <MapPin className='h-10 w-10 flex-shrink-0 text-muted-foreground opacity-50' />
               </div>
@@ -308,9 +484,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Charts Row 1 */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6'>
-          {/* Projects Over Time */}
           <Card>
             <CardHeader className='pb-6'>
               <CardTitle className='text-xl'>Project Growth Over Time</CardTitle>
@@ -319,79 +493,88 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className='pt-0'>
-              <ChartContainer
-                config={{
-                  projects: {
-                    label: 'Projects',
-                    color: 'hsl(200, 75%, 50%)',
-                  },
-                  students: {
-                    label: 'Students',
-                    color: 'hsl(260, 50%, 50%)',
-                  },
-                }}
-                className='h-[320px]'
-              >
-                <ResponsiveContainer width='100%' height='100%'>
-                  <LineChart data={projectsByYear}>
-                    <CartesianGrid strokeDasharray='3 3' />
-                    <XAxis dataKey='year' />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Line
-                      type='monotone'
-                      dataKey='projects'
-                      stroke='hsl(200, 75%, 50%)'
-                      strokeWidth={2}
-                      name='Projects'
-                    />
-                    <Line
-                      type='monotone'
-                      dataKey='students'
-                      stroke='hsl(260, 50%, 50%)'
-                      strokeWidth={2}
-                      name='Students'
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {projectsByYear.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    projects: {
+                      label: 'Projects',
+                      color: 'hsl(200, 75%, 50%)',
+                    },
+                    students: {
+                      label: 'Students',
+                      color: 'hsl(260, 50%, 50%)',
+                    },
+                  }}
+                  className='h-[320px]'
+                >
+                  <ResponsiveContainer width='100%' height='100%'>
+                    <LineChart data={projectsByYear}>
+                      <CartesianGrid strokeDasharray='3 3' />
+                      <XAxis dataKey='year' />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend />
+                      <Line
+                        type='monotone'
+                        dataKey='projects'
+                        stroke='hsl(200, 75%, 50%)'
+                        strokeWidth={2}
+                        name='Projects'
+                      />
+                      <Line
+                        type='monotone'
+                        dataKey='students'
+                        stroke='hsl(260, 50%, 50%)'
+                        strokeWidth={2}
+                        name='Students'
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className='h-[320px] flex items-center justify-center text-muted-foreground'>
+                  No data available for selected filters
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Projects by Sector */}
           <Card>
             <CardHeader className='pb-6'>
               <CardTitle className='text-xl'>Projects by Sector</CardTitle>
               <CardDescription className='text-base'>Distribution across different focus areas</CardDescription>
             </CardHeader>
             <CardContent className='pt-0'>
-              <ChartContainer
-                config={{
-                  count: {
-                    label: 'Projects',
-                    color: 'hsl(200, 75%, 50%)',
-                  },
-                }}
-                className='h-[320px]'
-              >
-                <ResponsiveContainer width='100%' height='100%'>
-                  <BarChart data={projectsBySector}>
-                    <CartesianGrid strokeDasharray='3 3' />
-                    <XAxis dataKey='sector' />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey='count' fill='hsl(200, 75%, 50%)' name='Projects' />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {projectsBySector.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    count: {
+                      label: 'Projects',
+                      color: 'hsl(200, 75%, 50%)',
+                    },
+                  }}
+                  className='h-[320px]'
+                >
+                  <ResponsiveContainer width='100%' height='100%'>
+                    <BarChart data={projectsBySector}>
+                      <CartesianGrid strokeDasharray='3 3' />
+                      <XAxis dataKey='sector' />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey='count' fill='hsl(200, 75%, 50%)' name='Projects' />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className='h-[320px] flex items-center justify-center text-muted-foreground'>
+                  No data available for selected filters
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts Row 2 */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 md:mb-10'>
-          {/* SDG Alignment */}
           <Card>
             <CardHeader className='pb-6'>
               <CardTitle className='text-xl'>SDG Alignment</CardTitle>
@@ -400,75 +583,85 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className='pt-0'>
-              <ChartContainer
-                config={{
-                  count: {
-                    label: 'Projects',
-                  },
-                }}
-                className='h-[320px]'
-              >
-                <ResponsiveContainer width='100%' height='100%'>
-                  <PieChart>
-                    <Pie
-                      data={projectsBySDG}
-                      cx='50%'
-                      cy='50%'
-                      labelLine={false}
-                      label={(entry) => {
-                        if (!entry || !entry.sdg) return ''
-                        const percent = entry.percent || 0
-                        return `${entry.sdg} ${(percent * 100).toFixed(0)}%`
-                      }}
-                      outerRadius={80}
-                      fill='#8884d8'
-                      dataKey='count'
-                      nameKey='sdg'
-                    >
-                      {projectsBySDG.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {projectsBySDG.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    count: {
+                      label: 'Projects',
+                    },
+                  }}
+                  className='h-[320px]'
+                >
+                  <ResponsiveContainer width='100%' height='100%'>
+                    <PieChart>
+                      <Pie
+                        data={projectsBySDG}
+                        cx='50%'
+                        cy='50%'
+                        labelLine={false}
+                        label={(entry) => {
+                          if (!entry || !entry.sdg) return ''
+                          const percent = entry.percent || 0
+                          return `${entry.sdg} ${(percent * 100).toFixed(0)}%`
+                        }}
+                        outerRadius={80}
+                        fill='#8884d8'
+                        dataKey='count'
+                        nameKey='sdg'
+                      >
+                        {projectsBySDG.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className='h-[320px] flex items-center justify-center text-muted-foreground'>
+                  No SDG data available
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Partner Distribution */}
           <Card>
             <CardHeader className='pb-6'>
-              <CardTitle className='text-xl'>Partner Type Distribution</CardTitle>
-              <CardDescription className='text-base'>Collaboration with different organization types</CardDescription>
+              <CardTitle className='text-xl'>Program Distribution</CardTitle>
+              <CardDescription className='text-base'>Projects by academic program</CardDescription>
             </CardHeader>
             <CardContent className='pt-0'>
               <div className='space-y-6 pt-4'>
-                {projectsByPartner.map((partner) => (
-                  <div key={partner.type} className='space-y-2'>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-3'>
-                        <div className='font-medium text-base'>{partner.type}</div>
-                        <Badge variant='secondary' className='text-sm'>
-                          {partner.count} projects
-                        </Badge>
+                {projectsByProgram.length > 0 ? (
+                  projectsByProgram.map((program) => (
+                    <div key={program.type} className='space-y-2'>
+                      <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-3'>
+                          <div className='font-medium text-base'>{program.type}</div>
+                          <Badge variant='secondary' className='text-sm'>
+                            {program.count} projects
+                          </Badge>
+                        </div>
+                        <div className='text-sm font-medium text-muted-foreground'>{program.percentage}%</div>
                       </div>
-                      <div className='text-sm font-medium text-muted-foreground'>{partner.percentage}%</div>
+                      <div className='h-3 bg-muted rounded-full overflow-hidden'>
+                        <div
+                          className='h-full bg-primary rounded-full transition-all'
+                          style={{ width: `${program.percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className='h-3 bg-muted rounded-full overflow-hidden'>
-                      <div
-                        className='h-full bg-primary rounded-full transition-all'
-                        style={{ width: `${partner.percentage}%` }}
-                      />
-                    </div>
+                  ))
+                ) : (
+                  <div className='h-[200px] flex items-center justify-center text-muted-foreground'>
+                    No program data available
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Geography Section */}
         <Card className='mb-8 md:mb-10'>
           <CardHeader className='pb-6'>
             <CardTitle className='text-xl'>Geographic Distribution</CardTitle>
@@ -481,11 +674,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Footer Note */}
         <div className='mt-8 p-5 bg-muted/50 rounded-lg border'>
           <p className='text-sm text-muted-foreground text-center flex items-center justify-center gap-2'>
             <Calendar className='h-4 w-4 flex-shrink-0' />
-            <span>Dashboard last updated: December 23, 2025 | Data sourced from GiveGoa Repository</span>
+            <span>Dashboard updated in real-time from database | Total: {projects.length} approved projects</span>
           </p>
         </div>
       </main>
