@@ -14,22 +14,31 @@ import { getSupabaseClient } from "@/lib/supabase"
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false)
   const [isMounted, setIsMounted] = React.useState(false);
+  const [authChecked, setAuthChecked] = React.useState(false);
   const pathname = usePathname()
   const [activeLink, setActiveLink] = React.useState(pathname)
   const [user, setUser] = React.useState<User | null>(null)
   const [isAdmin, setIsAdmin] = React.useState(false)
-  const supabase = getSupabaseClient()
+  const supabaseRef = React.useRef(getSupabaseClient())
 
   React.useEffect(() => {
     setIsMounted(true);
+    const supabase = supabaseRef.current;
 
-    if (!supabase) return;
+    if (!supabase) {
+      setAuthChecked(true);
+      return;
+    }
 
     const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data) {
-        setUser(data.user);
-        setIsAdmin(data.user?.user_metadata?.role === 'admin');
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data?.user) {
+          setUser(data.user);
+          setIsAdmin(data.user?.user_metadata?.role === 'admin');
+        }
+      } finally {
+        setAuthChecked(true);
       }
     };
 
@@ -38,12 +47,13 @@ export function Navbar() {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setIsAdmin(session?.user?.user_metadata?.role === 'admin');
+      setAuthChecked(true);
     });
 
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   const navItems = [
     { name: "Home", href: "/" },
@@ -147,6 +157,7 @@ export function Navbar() {
                               variant="outline" 
                               className="w-full h-12 text-base"
                               onClick={async () => {
+                                const supabase = supabaseRef.current;
                                 if (supabase) {
                                   await supabase.auth.signOut();
                                   setIsOpen(false);
