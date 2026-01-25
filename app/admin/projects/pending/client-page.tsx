@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { createBrowserClient } from '@supabase/ssr';
+import { toast } from 'sonner';
+import { CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -18,31 +19,51 @@ interface Project {
   status: string;
   file_url: string;
   submitter_email: string;
+  program?: string;
+  year?: string;
 }
 
 export default function PendingProjectsClient({ initialProjects }: { initialProjects: Project[] }) {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<Project[]>(initialProjects.filter(p => p.status === 'pending'));
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (project: Project) => {
+    setActionInProgress(project.id);
+    
     const { error } = await supabase
       .from('projects')
       .update({ status: 'approved' })
-      .eq('id', id);
+      .eq('id', project.id);
 
     if (error) {
       console.error('Error approving project:', error);
-    } else {
-      setProjects(projects.filter(p => p.id !== id));
+      toast.error('Failed to approve project');
+      setActionInProgress(null);
+      return;
     }
+
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: { ...project, status: 'approved' } }),
+      });
+    } catch (e) {
+      console.error('Email error:', e);
+    }
+
+    setProjects(projects.filter(p => p.id !== project.id));
+    toast.success(`"${project.title}" has been approved`);
+    setActionInProgress(null);
   };
 
   const openRejectDialog = (project: Project) => {
@@ -52,7 +73,10 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
   };
 
   const handleRejectSubmit = async () => {
-    if (!selectedProject || !rejectionReason.trim()) return;
+    if (!selectedProject || !rejectionReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -66,6 +90,7 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
 
     if (error) {
       console.error('Error rejecting project:', error);
+      toast.error('Failed to reject project');
       setIsSubmitting(false);
       return;
     }
@@ -84,11 +109,13 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
       console.error('Error sending rejection email:', emailError);
     }
 
+    const projectTitle = selectedProject.title;
     setProjects(projects.filter(p => p.id !== selectedProject.id));
     setRejectDialogOpen(false);
     setSelectedProject(null);
     setRejectionReason('');
     setIsSubmitting(false);
+    toast.success(`"${projectTitle}" has been rejected`);
   };
 
   return (
@@ -96,55 +123,67 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
       <Card>
         <CardHeader>
           <CardTitle>Pending Project Submissions</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {projects.length} project{projects.length !== 1 ? 's' : ''} awaiting review
+          </p>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project Title</TableHead>
-                <TableHead>Submitted By</TableHead>
-                <TableHead>Submitted At</TableHead>
-                <TableHead>File</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          {projects.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <p className="text-lg font-medium">All caught up!</p>
+              <p className="text-muted-foreground">No pending projects to review.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
               {projects.map(project => (
-                <TableRow key={project.id}>
-                  <TableCell>{project.title}</TableCell>
-                  <TableCell>{project.student_names.join(', ')}</TableCell>
-                  <TableCell>{new Date(project.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <a href={project.file_url} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">View File</Button>
-                    </a>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={{
-                        pending: 'bg-yellow-500',
-                        approved: 'bg-green-500',
-                        rejected: 'bg-red-500',
-                      }[project.status] || 'bg-gray-400'}
-                    >
-                      {project.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button onClick={() => handleApprove(project.id)} size='sm' className='mr-2'>
-                      Approve
-                    </Button>
-                    <Button onClick={() => openRejectDialog(project)} size='sm' variant='destructive'>
-                      Decline
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <Card key={project.id} className="p-4">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{project.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Submitted by: {project.submitter_email}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Date: {new Date(project.created_at).toLocaleDateString()}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {project.program && <Badge variant="outline">{project.program}</Badge>}
+                        {project.year && <Badge variant="outline">{project.year}</Badge>}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {project.file_url && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={project.file_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            View File
+                          </a>
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm"
+                        onClick={() => handleApprove(project)}
+                        disabled={actionInProgress === project.id}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {actionInProgress === project.id ? 'Approving...' : 'Approve'}
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => openRejectDialog(project)}
+                        disabled={actionInProgress === project.id}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
-          {projects.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">No pending projects to review.</p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -152,36 +191,23 @@ export default function PendingProjectsClient({ initialProjects }: { initialProj
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Decline Project</DialogTitle>
+            <DialogTitle>Reject Project</DialogTitle>
             <DialogDescription>
-              Please provide a reason for declining this project. This will be sent to the student.
+              Please provide a reason for rejecting "{selectedProject?.title}". This feedback will be sent to the student via email.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Project: {selectedProject?.title}</Label>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reason">Reason for Declining</Label>
-              <Textarea
-                id="reason"
-                placeholder="Please explain what changes are needed..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={4}
-              />
-            </div>
-          </div>
+          <Textarea
+            placeholder="Enter reason for rejection..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            rows={4}
+          />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectSubmit}
-              disabled={!rejectionReason.trim() || isSubmitting}
-            >
-              {isSubmitting ? 'Sending...' : 'Decline & Notify Student'}
+            <Button variant="destructive" onClick={handleRejectSubmit} disabled={isSubmitting || !rejectionReason.trim()}>
+              {isSubmitting ? 'Rejecting...' : 'Reject Project'}
             </Button>
           </DialogFooter>
         </DialogContent>
