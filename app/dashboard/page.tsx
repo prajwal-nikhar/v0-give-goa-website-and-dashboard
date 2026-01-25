@@ -674,6 +674,27 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {process.env.NEXT_PUBLIC_POWERBI_EMBED_URL && (
+          <Card className='mb-8 md:mb-10'>
+            <CardHeader className='pb-6'>
+              <CardTitle className='text-xl'>Power BI Analytics</CardTitle>
+              <CardDescription className='text-base'>Advanced analytics and real-time insights</CardDescription>
+            </CardHeader>
+            <CardContent className='pt-0'>
+              <div className='w-full aspect-video rounded-lg overflow-hidden border'>
+                <iframe
+                  title="Power BI Dashboard"
+                  width="100%"
+                  height="100%"
+                  src={process.env.NEXT_PUBLIC_POWERBI_EMBED_URL}
+                  frameBorder="0"
+                  allowFullScreen
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className='mt-8 p-5 bg-muted/50 rounded-lg border'>
           <p className='text-sm text-muted-foreground text-center flex items-center justify-center gap-2'>
             <Calendar className='h-4 w-4 flex-shrink-0' />
