@@ -14,9 +14,9 @@ const PROJECTS_PER_PAGE = 12;
 
 const PROGRAM_START_YEARS: Record<string, number> = {
   'PGDM CORE': 2005,
-  'PGDM BIFS': 2016,
-  'PGDM BDA': 2020,
-  'PGDM HCM': 2022,
+  'PGDM BIFS': 2020,
+  'PGDM BDA': 2018,
+  'PGDM HCM': 2013,
 };
 
 const PROGRAM_OPTIONS = Object.keys(PROGRAM_START_YEARS);

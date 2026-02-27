@@ -1,12 +1,18 @@
-'use client'
+"use client";
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, Users, Target, TrendingUp, Globe } from "lucide-react"
-import { useEffect, useState } from "react"
-import { User } from "@supabase/supabase-js"
-import { getSupabaseClient } from "@/lib/supabase"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Script from "next/script";
+import { ArrowRight, Users, Target, TrendingUp, Globe } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User } from "@supabase/supabase-js";
+import { getSupabaseClient } from "@/lib/supabase";
 
 interface Stats {
   totalProjects: number;
@@ -31,7 +37,7 @@ export default function HomePage() {
       setLoading(false);
       return;
     }
-    
+
     const fetchData = async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (userData) {
@@ -39,21 +45,21 @@ export default function HomePage() {
       }
 
       const { count: projectCount } = await supabase
-        .from('projects')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'approved');
+        .from("projects")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "approved");
 
       const { data: projects } = await supabase
-        .from('projects')
-        .select('student_names, organization_name, sdg, group_no')
-        .eq('status', 'approved');
+        .from("projects")
+        .select("student_names, organization_name, sdg, group_no")
+        .eq("status", "approved");
 
       let studentsCount = 0;
       const orgsSet = new Set<string>();
       const sdgSet = new Set<string>();
 
       if (projects) {
-        projects.forEach(p => {
+        projects.forEach((p) => {
           // Count students from student_names array or estimate 4 per group if group_no exists
           if (p.student_names && Array.isArray(p.student_names)) {
             studentsCount += p.student_names.length;
@@ -67,7 +73,9 @@ export default function HomePage() {
           if (p.sdg) {
             const sdgMatches = p.sdg.match(/SDG\s*\d+/gi);
             if (sdgMatches) {
-              sdgMatches.forEach((s: string) => sdgSet.add(s.toUpperCase().replace(/\s+/g, ' ')));
+              sdgMatches.forEach((s: string) =>
+                sdgSet.add(s.toUpperCase().replace(/\s+/g, " ")),
+              );
             } else {
               sdgSet.add(p.sdg);
             }
@@ -87,9 +95,11 @@ export default function HomePage() {
 
     fetchData();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      },
+    );
 
     return () => {
       authListener?.subscription.unsubscribe();
@@ -106,8 +116,8 @@ export default function HomePage() {
               Community Impact Through Student Action
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground text-pretty max-w-2xl mx-auto">
-              SLRI connects GIM students with community engagement projects that drive sustainable development across
-              Goa and beyond.
+              SLRI connects GIM students with community engagement projects that
+              drive sustainable development across Goa and beyond.
             </p>
             {!user && (
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
@@ -131,27 +141,35 @@ export default function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             <div className="text-center space-y-2">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
-                {loading ? '...' : stats.totalProjects}
+                {loading ? "..." : stats.totalProjects}
               </div>
-              <div className="text-sm md:text-base text-muted-foreground">Total Projects</div>
+              <div className="text-sm md:text-base text-muted-foreground">
+                Total Projects
+              </div>
             </div>
             <div className="text-center space-y-2">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
-                {loading ? '...' : stats.studentsEngaged.toLocaleString()}
+                {loading ? "..." : stats.studentsEngaged.toLocaleString()}
               </div>
-              <div className="text-sm md:text-base text-muted-foreground">Students Engaged</div>
+              <div className="text-sm md:text-base text-muted-foreground">
+                Students Engaged
+              </div>
             </div>
             <div className="text-center space-y-2">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
-                {loading ? '...' : stats.partnerOrgs}
+                {loading ? "..." : stats.partnerOrgs}
               </div>
-              <div className="text-sm md:text-base text-muted-foreground">Partner Organizations</div>
+              <div className="text-sm md:text-base text-muted-foreground">
+                Partner Organizations
+              </div>
             </div>
             <div className="text-center space-y-2">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
-                {loading ? '...' : stats.sdgGoals}
+                {loading ? "..." : stats.sdgGoals}
               </div>
-              <div className="text-sm md:text-base text-muted-foreground">SDG Goals Addressed</div>
+              <div className="text-sm md:text-base text-muted-foreground">
+                SDG Goals Addressed
+              </div>
             </div>
           </div>
         </div>
@@ -161,10 +179,13 @@ export default function HomePage() {
       <section className="py-12 md:py-16 lg:py-20">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-10 md:mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold">Driving Real Impact</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">
+              Driving Real Impact
+            </h2>
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-              Our platform connects students with meaningful community engagement opportunities aligned with the UN
-              Sustainable Development Goals.
+              Our platform connects students with meaningful community
+              engagement opportunities aligned with the UN Sustainable
+              Development Goals.
             </p>
           </div>
 
@@ -213,9 +234,12 @@ export default function HomePage() {
       <section className="py-12 md:py-16 lg:py-20 bg-primary/5">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold">Ready to Make an Impact?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">
+              Ready to Make an Impact?
+            </h2>
             <p className="text-base md:text-lg text-muted-foreground">
-              Join our community of changemakers and contribute to sustainable development through meaningful projects.
+              Join our community of changemakers and contribute to sustainable
+              development through meaningful projects.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg">
@@ -232,6 +256,18 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      {/* ================= HIT COUNTER ================= */}
+      <section className="py-8 flex justify-center">
+        <div
+          className="powr-hit-counter"
+          id="ff6cf6f6_1772220324"
+        ></div>
+
+        <Script
+          src="https://www.powr.io/powr.js?platform=html"
+          strategy="afterInteractive"
+        />
+      </section>
     </div>
-  )
+  );
 }
