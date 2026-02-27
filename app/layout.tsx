@@ -1,4 +1,3 @@
-
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -11,11 +10,20 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
   title: 'SLRI',
   description: 'A platform to connect students with projects that make a difference.',
+  icons: {
+    icon: [
+      {
+        url: '/gim-logo.svg',
+        sizes: '32x32',
+        type: 'image/svg+xml',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }> ) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
