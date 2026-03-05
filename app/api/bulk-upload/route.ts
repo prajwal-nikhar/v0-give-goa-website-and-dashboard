@@ -49,16 +49,37 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      const rawYear = row['Yr'] || row['Year'] || row['year'] || '';
+      const formattedYear = rawYear ? rawYear.toString().trim() : null;
+
+      const rawProgram = row['Program'] || row['program'] || '';
+      let formattedProgram = rawProgram ? rawProgram.toString().trim() : null;
+      
+      if (formattedProgram) {
+        const programMap: Record<string, string> = {
+          'CORE': 'PGDM CORE',
+          'BIFS': 'PGDM BIFS',
+          'BDA': 'PGDM BDA',
+          'HCM': 'PGDM HCM',
+        };
+        for (const [key, value] of Object.entries(programMap)) {
+          if (formattedProgram.toUpperCase().includes(key)) {
+            formattedProgram = value;
+            break;
+          }
+        }
+      }
+
       return {
         title: row['List of Projects'] || row['Project Title'] || row['title'] || row['Project Name'] || 'Untitled Project',
         sector: row['Sector'] || row['sector'] || null,
         geographical_scope: row['Geographical Scope'] || row['geographical_scope'] || null,
         group_no: row['Group No'] || row['group_no'] || null,
-        year: row['Yr'] || row['Year'] || row['year'] || null,
+        year: formattedYear,
         group_id: row['GroupID'] || row['group_id'] || null,
         concentration: row['conc'] || row['Concentration'] || row['concentration'] || null,
         sdg: formattedSdg,
-        program: row['Program'] || row['program'] || null,
+        program: formattedProgram,
         project_link: row['Link to the projects'] || row['Project Link'] || row['project_link'] || null,
         objectives: row['Objectives'] || row['objectives'] || null,
         description: row['Objectives'] || row['Description'] || row['description'] || null,

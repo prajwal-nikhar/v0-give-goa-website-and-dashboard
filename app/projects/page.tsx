@@ -100,8 +100,10 @@ export default function ProjectsPage() {
           project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (project.keywords && project.keywords.some((k: string) => k.toLowerCase().includes(searchTerm.toLowerCase())));
         
-        const matchesProgram = programFilter === 'all' || project.program === programFilter;
-        const matchesYear = yearFilter === 'all' || project.year === yearFilter;
+        const matchesProgram = programFilter === 'all' || 
+          (project.program && project.program.toLowerCase().includes(programFilter.toLowerCase()));
+        const matchesYear = yearFilter === 'all' || 
+          (project.year && project.year.toString() === yearFilter.toString());
         const matchesSdg = sdgFilter === 'all' || 
           (project.sdg && (
             project.sdg === sdgFilter || 
