@@ -13,6 +13,7 @@ import { ArrowRight, Users, Target, TrendingUp, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabase";
+import Footer from "@/components/Footer";
 
 interface Stats {
   totalProjects: number;
@@ -268,6 +269,7 @@ export default function HomePage() {
           strategy="afterInteractive"
         />
       </section>
+      <Footer />
     </div>
   );
 }

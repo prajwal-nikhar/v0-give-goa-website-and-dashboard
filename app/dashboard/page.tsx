@@ -12,7 +12,7 @@ export default function DashboardPage() {
         <div className='container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10'>
           <div className='flex flex-col gap-3'>
             <div>
-              <h1 className='text-3xl md:text-4xl font-bold tracking-tight'>GiveGoa Live Dashboard</h1>
+              <h1 className='text-3xl md:text-4xl font-bold tracking-tight'>SLRI Live Dashboard</h1>
               <p className='text-base md:text-lg text-muted-foreground mt-3 leading-relaxed'>
                 Real-time insights into community engagement projects led by GIM students
               </p>
