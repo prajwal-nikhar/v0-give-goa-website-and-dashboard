@@ -102,7 +102,12 @@ export default function ProjectsPage() {
         
         const matchesProgram = programFilter === 'all' || project.program === programFilter;
         const matchesYear = yearFilter === 'all' || project.year === yearFilter;
-        const matchesSdg = sdgFilter === 'all' || project.sdg === sdgFilter;
+        const matchesSdg = sdgFilter === 'all' || 
+          (project.sdg && (
+            project.sdg === sdgFilter || 
+            project.sdg.startsWith(sdgFilter.split(' - ')[0]) ||
+            sdgFilter.startsWith(project.sdg.split(' - ')[0])
+          ));
         
         return matchesSearch && matchesProgram && matchesYear && matchesSdg;
       })
