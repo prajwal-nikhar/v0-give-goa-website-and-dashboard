@@ -42,3 +42,8 @@ build = ["npm", "run", "build"]
 
 [userenv.shared]
 NEXT_PUBLIC_POWERBI_EMBED_URL = "https://app.powerbi.com/view?r=eyJrIjoiNmNhMTgyNmUtZDljNi00MzcwLTkzODctYjNmMjVhNDhiYzQ4IiwidCI6IjFmNDM2ODQxLWZkMzEtNGFhYy1iNDkyLTlkMWI2OTJjMTU3YiIsImMiOjEwfQ%3D%3D"
+SMTP_USER = "jjeerryyy28@gmail.com"
+SMTP_PASS = "svgoihzmjfxjmurt"
+NEXT_PUBLIC_SUPABASE_URL = "https://krkvcpejibiwpshoylbl.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtya3ZjcGVqaWJpd3BzaG95bGJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MTUxOTMsImV4cCI6MjA4NDQ5MTE5M30.sEIQnpDeMK0T6eT4u2mF8qIEDMHE2KeL_Xk5hypaVgc"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtya3ZjcGVqaWJpd3BzaG95bGJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODkxNTE5MywiZXhwIjoyMDg0NDkxMTkzfQ.0eyMKtUh2bL-vWrZypok4dNe5kPS2JPVmCdz-J9qXAA"
