@@ -12,6 +12,8 @@ const nextConfig = {
     '127.0.0.1',
     '*.replit.dev',
     '*.picard.replit.dev',
+    '*.janeway.replit.dev',
+    '*.repl.co',
   ],
 }
 
