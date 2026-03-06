@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, ArrowRight, Building2, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { getSupabaseClient } from "@/lib/supabase"
+import { AdminDeleteProjectButton } from "@/components/admin-delete-project-button"
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -17,31 +18,43 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
   const [prevProjectId, setPrevProjectId] = useState<string | null>(null);
   const [nextProjectId, setNextProjectId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const supabase = getSupabaseClient();
 
   useEffect(() => {
     if (!id || !supabase) return;
-    const fetchProject = async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single();
+
+    const fetchData = async () => {
+      const [{ data: userData }, { data, error }, { data: allProjects, error: allProjectsError }] =
+        await Promise.all([
+          supabase.auth.getUser(),
+          supabase
+            .from('projects')
+            .select('*')
+            .eq('id', id)
+            .single(),
+          supabase
+            .from('projects')
+            .select('id')
+            .eq('status', 'approved')
+            .order('id', { ascending: true }),
+        ]);
+
+      if (userData?.user) {
+        setIsAdmin(userData.user.user_metadata?.role === 'admin');
+      }
 
       if (error || !data) {
         notFound();
+        return;
       }
 
       setProject(data);
 
-      const { data: allProjects, error: allProjectsError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('status', 'approved')
-        .order('id', { ascending: true });
-
-      if (allProjectsError) {
-        console.error('Error fetching all projects:', allProjectsError);
+      if (allProjectsError || !allProjects) {
+        if (allProjectsError) {
+          console.error('Error fetching all projects:', allProjectsError);
+        }
         return;
       }
 
@@ -57,7 +70,7 @@ export default function ProjectDetailPage() {
       }
     };
 
-    fetchProject();
+    fetchData();
   }, [id, supabase]);
 
   if (!project) {
@@ -74,6 +87,11 @@ export default function ProjectDetailPage() {
               Back to Projects
             </Link>
           </Button>
+          {isAdmin && project && (
+            <div className="mt-4">
+              <AdminDeleteProjectButton projectId={project.id} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -87,85 +105,110 @@ export default function ProjectDetailPage() {
             ))}
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-balance">{project.title}</h1>
-          <p className="text-xl text-muted-foreground text-pretty">{project.description}</p>
+          {project.description && (
+            <p className="text-xl text-muted-foreground text-pretty">{project.description}</p>
+          )}
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {project.organization_name && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
-                <CardContent className="pt-6 flex items-start gap-3">
+              <CardContent className="pt-6 flex items-start gap-3">
                 <Building2 className="h-5 w-5 text-primary mt-0.5" />
                 <div>
-                    <div className="text-sm text-muted-foreground">Organization</div>
-                    <div className="font-semibold">{project.organization_name}</div>
+                  <div className="text-sm text-muted-foreground">Organization</div>
+                  <div className="font-semibold">{project.organization_name}</div>
                 </div>
-                </CardContent>
+              </CardContent>
             </Card>
-        </div>
+          </div>
+        )}
 
         <Card>
           <CardHeader>
             <CardTitle>About This Project</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-gray dark:prose-invert max-w-none">
-            {(project.full_description || '').split("\n\n").map((paragraph: string, index: number) => (
-              <p key={index} className="mb-4 text-muted-foreground leading-relaxed">
-                {paragraph}
+            {((project.full_description || project.objectives || project.description) ?? '')
+              .split("\n\n")
+              .filter((paragraph: string) => paragraph.trim().length > 0)
+              .map((paragraph: string, index: number) => (
+                <p key={index} className="mb-4 text-muted-foreground leading-relaxed">
+                  {paragraph}
+                </p>
+              ))}
+            {!project.full_description && !project.objectives && !project.description && (
+              <p className="text-muted-foreground">
+                Project description is not available.
               </p>
-            ))}
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Project Team
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-3">Student Team</h3>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {project.student_names?.map((student: string) => (
-                  <div key={student} className="px-4 py-2 bg-muted rounded-lg text-sm">
-                    {student}
+        {(project.student_names?.length || project.faculty || project.mentor) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Project Team
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {project.student_names?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3">Student Team</h3>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {project.student_names.map((student: string) => (
+                      <div key={student} className="px-4 py-2 bg-muted rounded-lg text-sm">
+                        {student}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              )}
 
-            <Separator />
+              {(project.faculty || project.mentor) && (
+                <>
+                  {project.student_names?.length > 0 && <Separator />}
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    {project.faculty && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Faculty Coordinator</h3>
+                        <p className="text-muted-foreground">{project.faculty}</p>
+                      </div>
+                    )}
+                    {project.mentor && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Project Mentor</h3>
+                        <p className="text-muted-foreground">{project.mentor}</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2">Faculty Coordinator</h3>
-                <p className="text-muted-foreground">{project.faculty}</p>
+        {project.file_url && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Report</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full h-[600px] border rounded-lg overflow-hidden bg-muted">
+                <iframe src={project.file_url} className="w-full h-full" title="Project Report" loading="lazy" />
               </div>
-              <div>
-                <h3 className="font-semibold mb-2">Project Mentor</h3>
-                <p className="text-muted-foreground">{project.mentor}</p>
+              <div className="mt-4">
+                <Button asChild variant="outline">
+                  <a href={project.file_url} download>
+                    Download Full Report
+                  </a>
+                </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Report</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full h-[600px] border rounded-lg overflow-hidden bg-muted">
-              <iframe src={project.file_url} className="w-full h-full" title="Project Report" loading="lazy" />
-            </div>
-            <div className="mt-4">
-              <Button asChild variant="outline">
-                <a href={project.file_url} download>
-                  Download Full Report
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex items-center justify-between pt-8 border-t">
           {prevProjectId ? (

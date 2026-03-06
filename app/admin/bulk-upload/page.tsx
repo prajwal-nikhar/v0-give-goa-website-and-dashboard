@@ -7,37 +7,76 @@ import { Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from "lu
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.split('\n').filter(line => line.trim());
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  const rows: Record<string, string>[] = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (const char of lines[i]) {
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        values.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
+  // Robust CSV parser that supports:
+  // - Commas inside quoted fields
+  // - Newlines inside quoted fields
+  // - Trims outer quotes on headers and values
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (char === '"') {
+      // Toggle quote state. This is a simple parser and assumes no escaped quotes.
+      inQuotes = !inQuotes;
+      continue;
     }
-    values.push(current.trim());
-    
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(currentField);
+      currentField = "";
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (currentField.length > 0 || currentRow.length > 0) {
+        currentRow.push(currentField);
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentField = "";
+
+      // Handle CRLF (\r\n) by skipping next \n when we already processed \r
+      if (char === '\r' && text[i + 1] === '\n') {
+        i++;
+      }
+      continue;
+    }
+
+    currentField += char;
+  }
+
+  // Push last field/row at EOF
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h => h.trim().replace(/^"|"$/g, ''));
+  const result: Record<string, string>[] = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const rawValues = rows[i];
+    const values = rawValues.map(v => v.trim().replace(/^"|"$/g, ''));
+
+    // Skip completely empty rows
+    if (values.every(value => value === '')) {
+      continue;
+    }
+
     const row: Record<string, string> = {};
     headers.forEach((header, index) => {
-      row[header] = values[index] || '';
+      row[header] = values[index] ?? '';
     });
-    rows.push(row);
+    result.push(row);
   }
-  
-  return rows;
+
+  return result;
 }
 
 export default function BulkUploadPage() {

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink, UserCircle } from 'lucide-react';
 import { ProjectClientPage } from '@/app/dashboard/[id]/client-page';
+import { AdminDeleteProjectButton } from '@/components/admin-delete-project-button';
 
 // The params object is a Promise, so we need to await it.
 export default async function ProjectDetailsPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
@@ -40,13 +41,14 @@ export default async function ProjectDetailsPage({ params: paramsPromise }: { pa
 
   return (
     <div className="container mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-10">
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <Button asChild variant="outline" size="sm">
           <Link href="/admin">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Link>
         </Button>
+        <AdminDeleteProjectButton projectId={project.id} />
       </div>
 
       <Card>

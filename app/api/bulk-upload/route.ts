@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Map raw CSV rows to project objects and remember whether a real title was provided
     const mappedProjects = projects.map((row: Record<string, string>) => {
       const rawSdg = row['SDG'] || row['sdg'] || '';
       let formattedSdg = null;
@@ -70,8 +71,17 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      const rawTitle =
+        row['List of Projects'] ||
+        row['Project Title'] ||
+        row['title'] ||
+        row['Project Name'] ||
+        '';
+      const hasExplicitTitle = !!rawTitle && rawTitle.toString().trim().length > 0;
+      const title = rawTitle.toString().trim();
+
       return {
-        title: row['List of Projects'] || row['Project Title'] || row['title'] || row['Project Name'] || 'Untitled Project',
+        title: title || 'Untitled Project',
         sector: row['Sector'] || row['sector'] || null,
         geographical_scope: row['Geographical Scope'] || row['geographical_scope'] || null,
         group_no: row['Group No'] || row['group_no'] || null,
@@ -89,12 +99,67 @@ export async function POST(request: NextRequest) {
         submitter_email: row['Email'] || row['submitter_email'] || 'bulk-import@admin.com',
         status: 'approved',
         created_at: new Date().toISOString(),
+        // internal flag used only for cleaning, not stored in DB
+        _hasExplicitTitle: hasExplicitTitle,
       };
     });
 
+    // Filter out rows that are clearly header/dummy/empty rows
+    const cleanedProjects = mappedProjects.filter((project: any) => {
+      const title = (project.title || '').trim();
+
+      // Require that this row actually had one of the title columns filled.
+      // Rows with ONLY Objectives / description etc. (continuation lines) are treated as junk.
+      if (!project._hasExplicitTitle) {
+        return false;
+      }
+
+      // Skip if title is missing or looks like a header label
+      if (
+        !title ||
+        ['list of projects', 'project title', 'project name'].includes(title.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Detect obviously dummy/fragment rows:
+      const isUntitled = title.toLowerCase() === 'untitled project';
+      const hasCoreMetadata =
+        project.program ||
+        project.year ||
+        project.organization_name ||
+        project.group_no ||
+        project.group_id;
+
+      // If we had to default the title and there's no core metadata, treat as junk
+      if (isUntitled && !hasCoreMetadata) {
+        return false;
+      }
+
+      // Skip if there is no meaningful content besides the auto-filled fields
+      const hasMeaningfulField =
+        project.objectives ||
+        project.description ||
+        project.project_link ||
+        project.organization_name ||
+        project.sector;
+
+      return !!hasMeaningfulField;
+    });
+
+    if (!cleanedProjects.length) {
+      return NextResponse.json(
+        { error: 'No valid project rows found after cleaning data' },
+        { status: 400 }
+      );
+    }
+    
+    // Strip internal helper flag before inserting into DB
+    const insertProjects = cleanedProjects.map(({ _hasExplicitTitle, ...rest }: any) => rest);
+
     const { data, error } = await supabase
       .from('projects')
-      .insert(mappedProjects)
+      .insert(insertProjects)
       .select();
 
     if (error) {

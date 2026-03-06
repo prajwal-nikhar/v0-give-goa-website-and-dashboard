@@ -102,8 +102,18 @@ export default function ProjectsPage() {
         
         const matchesProgram = programFilter === 'all' || 
           (project.program && project.program.toLowerCase().includes(programFilter.toLowerCase()));
-        const matchesYear = yearFilter === 'all' || 
-          (project.year && project.year.toString() === yearFilter.toString());
+
+        // Support year values like "2022-23" by matching on the first 4-digit year
+        const matchesYear = (() => {
+          if (yearFilter === 'all') return true;
+          if (!project.year) return false;
+
+          const projectYearStr = project.year.toString();
+          const match = projectYearStr.match(/\d{4}/);
+          const normalizedProjectYear = match ? match[0] : projectYearStr;
+
+          return normalizedProjectYear === yearFilter.toString();
+        })();
         const matchesSdg = sdgFilter === 'all' || 
           (project.sdg && (
             project.sdg === sdgFilter || 
@@ -111,6 +121,20 @@ export default function ProjectsPage() {
             sdgFilter.startsWith(project.sdg.split(' - ')[0])
           ));
         
+        // Hide clearly junk/dummy rows from the public listing
+        const isUntitled =
+          (project.title || '').trim().toLowerCase() === 'untitled project';
+        const hasAnyDetail =
+          project.description ||
+          project.objectives ||
+          project.file_url ||
+          project.organization_name ||
+          (project.student_names && project.student_names.length > 0);
+
+        if (isUntitled && !hasAnyDetail) {
+          return false;
+        }
+
         return matchesSearch && matchesProgram && matchesYear && matchesSdg;
       })
       .sort((a, b) => a.title?.localeCompare(b.title || '') || 0);
