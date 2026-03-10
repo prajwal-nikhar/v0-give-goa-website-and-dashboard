@@ -26,13 +26,21 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <PageWrapper>
-            <Navbar />
-            {children}
-          </PageWrapper>
-        </ThemeProvider>
+      <body
+        className={`${inter.className} min-h-screen bg-black bg-fixed bg-center bg-cover bg-no-repeat`}
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('/Picture 1.png')",
+        }}
+      >
+        <div className="min-h-screen bg-background/90">
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <PageWrapper>
+              <Navbar />
+              {children}
+            </PageWrapper>
+          </ThemeProvider>
+        </div>
       </body>
     </html>
   );

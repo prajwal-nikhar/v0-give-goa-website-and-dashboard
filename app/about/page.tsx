@@ -1,18 +1,87 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Quote, Target, Heart, TrendingUp, Users, Globe, Award, Lightbulb } from "lucide-react"
+ "use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Quote, Target, Heart, TrendingUp, Users, Globe, Award, Lightbulb } from "lucide-react";
+import { getSupabaseClient } from "@/lib/supabase";
+
+interface Stats {
+  totalProjects: number;
+  studentsEngaged: number;
+  partnerOrgs: number;
+  livesImpacted: number;
+}
 
 export default function AboutPage() {
+  const [stats, setStats] = useState<Stats>({
+    totalProjects: 0,
+    studentsEngaged: 0,
+    partnerOrgs: 0,
+    livesImpacted: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const supabase = getSupabaseClient();
+
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      const { count: projectCount } = await supabase
+        .from("projects")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "approved");
+
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("student_names, sdg, group_no, sector")
+        .eq("status", "approved");
+
+      let studentsCount = 0;
+      const sectorSet = new Set<string>();
+
+      if (projects) {
+        projects.forEach((p) => {
+          if (p.student_names && Array.isArray(p.student_names)) {
+            studentsCount += p.student_names.length;
+          } else if (p.group_no) {
+            studentsCount += 4;
+          }
+
+          if (p.sector) {
+            sectorSet.add(p.sector);
+          }
+        });
+      }
+
+      const estimatedLivesImpacted = studentsCount * 10;
+
+      setStats({
+        totalProjects: projectCount || 0,
+        studentsEngaged: studentsCount || 0,
+        partnerOrgs: sectorSet.size || 0,
+        livesImpacted: estimatedLivesImpacted || 0,
+      });
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [supabase]);
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative py-16 md:py-20 lg:py-28 bg-gradient-to-b from-primary/5 to-background">
+      <section className="relative py-16 md:py-20 lg:py-28 bg-gradient-to-b from-primary/5 to-background overflow-hidden">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
+          <div className="max-w-4xl mx-auto text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Badge variant="secondary" className="text-sm">
               About SLRI
             </Badge>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Empowering Students to Create Lasting Impact
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground text-pretty">
@@ -50,7 +119,7 @@ export default function AboutPage() {
               <img
                 src="/gim-students-community.jpg"
                 alt="GIM students working with community"
-                className="rounded-lg shadow-2xl"
+                className="rounded-lg shadow-2xl hover:shadow-[0_20px_45px_rgba(0,0,0,0.25)] transition-all duration-500 hover:-translate-y-1 hover:scale-[1.01]"
               />
             </div>
           </div>
@@ -61,7 +130,7 @@ export default function AboutPage() {
       <section className="py-12 md:py-16 lg:py-20 border-b bg-muted/30">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <Target className="h-10 w-10 text-primary mb-2" />
                 <CardTitle className="text-2xl">Our Vision</CardTitle>
@@ -72,7 +141,7 @@ export default function AboutPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <Heart className="h-10 w-10 text-primary mb-2" />
                 <CardTitle className="text-2xl">Our Mission</CardTitle>
@@ -178,7 +247,9 @@ export default function AboutPage() {
             <Card className="bg-background text-center">
               <CardContent className="pt-6">
                 <TrendingUp className="h-10 w-10 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold text-primary mb-2">156</div>
+                <div className="text-4xl font-bold text-primary mb-2">
+                  {loading ? "..." : stats.totalProjects}
+                </div>
                 <div className="text-sm text-muted-foreground">Total Projects Completed</div>
               </CardContent>
             </Card>
@@ -186,7 +257,9 @@ export default function AboutPage() {
             <Card className="bg-background text-center">
               <CardContent className="pt-6">
                 <Users className="h-10 w-10 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold text-primary mb-2">2,847</div>
+                <div className="text-4xl font-bold text-primary mb-2">
+                  {loading ? "..." : stats.studentsEngaged.toLocaleString()}
+                </div>
                 <div className="text-sm text-muted-foreground">Students Engaged</div>
               </CardContent>
             </Card>
@@ -194,22 +267,26 @@ export default function AboutPage() {
             <Card className="bg-background text-center">
               <CardContent className="pt-6">
                 <Globe className="h-10 w-10 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold text-primary mb-2">89</div>
-                <div className="text-sm text-muted-foreground">Partner Organizations</div>
+                <div className="text-4xl font-bold text-primary mb-2">
+                  {loading ? "..." : stats.partnerOrgs}
+                </div>
+                <div className="text-sm text-muted-foreground">Sectors (Partner Organizations)</div>
               </CardContent>
             </Card>
 
             <Card className="bg-background text-center">
               <CardContent className="pt-6">
                 <Award className="h-10 w-10 text-primary mx-auto mb-4" />
-                <div className="text-4xl font-bold text-primary mb-2">45,000+</div>
+                <div className="text-4xl font-bold text-primary mb-2">
+                  {loading ? "..." : `${stats.livesImpacted.toLocaleString()}+`}
+                </div>
                 <div className="text-sm text-muted-foreground">Lives Directly Impacted</div>
               </CardContent>
             </Card>
           </div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <Lightbulb className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Innovation</CardTitle>
@@ -219,7 +296,7 @@ export default function AboutPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <Target className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>SDG Alignment</CardTitle>
@@ -229,7 +306,7 @@ export default function AboutPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <Award className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Recognition</CardTitle>
@@ -253,10 +330,14 @@ export default function AboutPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <div className="h-20 w-20 rounded-full bg-muted mx-auto mb-4 overflow-hidden">
-                  <img src="/student-priya.jpg" alt="Priya Sharma" className="w-full h-full object-cover" />
+                  <img
+                    src="/student-priya.jpg"
+                    alt="Priya Sharma"
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                  />
                 </div>
                 <CardTitle className="text-center">Priya Sharma</CardTitle>
                 <CardDescription className="text-center">MBA 2024 | Rural Education Initiative</CardDescription>
@@ -270,10 +351,14 @@ export default function AboutPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <div className="h-20 w-20 rounded-full bg-muted mx-auto mb-4 overflow-hidden">
-                  <img src="/student-rahul.jpg" alt="Rahul Desai" className="w-full h-full object-cover" />
+                  <img
+                    src="/student-rahul.jpg"
+                    alt="Rahul Desai"
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                  />
                 </div>
                 <CardTitle className="text-center">Rahul Desai</CardTitle>
                 <CardDescription className="text-center">MBA 2023 | Sustainable Farming Project</CardDescription>
@@ -287,10 +372,14 @@ export default function AboutPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <div className="h-20 w-20 rounded-full bg-muted mx-auto mb-4 overflow-hidden">
-                  <img src="/student-ananya.jpg" alt="Ananya Verma" className="w-full h-full object-cover" />
+                  <img
+                    src="/student-ananya.jpg"
+                    alt="Ananya Verma"
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                  />
                 </div>
                 <CardTitle className="text-center">Ananya Verma</CardTitle>
                 <CardDescription className="text-center">MBA 2024 | Women's Empowerment Initiative</CardDescription>
@@ -318,7 +407,7 @@ export default function AboutPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <CardTitle>Dr. Sunita Rao</CardTitle>
                 <CardDescription>Faculty Coordinator, GIM</CardDescription>
@@ -333,7 +422,7 @@ export default function AboutPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-background">
+            <Card className="bg-background hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <CardTitle>Maria Fernandes</CardTitle>
                 <CardDescription>Director, Education for All Foundation</CardDescription>

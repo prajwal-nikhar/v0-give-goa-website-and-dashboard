@@ -156,59 +156,61 @@ export default function BulkUploadPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="border-b bg-background">
-        <div className="container py-6">
+        <div className="container max-w-6xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold">Bulk Upload</h1>
           <p className="text-muted-foreground mt-1">Upload multiple projects via CSV file</p>
         </div>
       </div>
 
-      <div className="container py-8 max-w-4xl">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upload Instructions</CardTitle>
-              <CardDescription>Follow these steps to upload projects in bulk</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
-                <div>
-                  <div className="font-medium mb-1">Export Excel to CSV</div>
-                  <p className="text-sm text-muted-foreground">Save your Excel file as CSV (File → Save As → CSV)</p>
+      <div className="container max-w-6xl mx-auto px-4 py-8">
+        <div className="space-y-8">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Upload Instructions</CardTitle>
+                <CardDescription>Follow these steps to upload projects in bulk</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
+                  <div>
+                    <div className="font-medium mb-1">Export Excel to CSV</div>
+                    <p className="text-sm text-muted-foreground">Save your Excel file as CSV (File → Save As → CSV)</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
-                <div>
-                  <div className="font-medium mb-1">Upload CSV File</div>
-                  <p className="text-sm text-muted-foreground">Select your CSV file below</p>
+                <div className="flex items-start gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
+                  <div>
+                    <div className="font-medium mb-1">Upload CSV File</div>
+                    <p className="text-sm text-muted-foreground">Select your CSV file below</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
-                <div>
-                  <div className="font-medium mb-1">Review and Import</div>
-                  <p className="text-sm text-muted-foreground">Preview your data and click upload</p>
+                <div className="flex items-start gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
+                  <div>
+                    <div className="font-medium mb-1">Review and Import</div>
+                    <p className="text-sm text-muted-foreground">Preview your data and click upload</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Expected Column Headers</CardTitle>
-              <CardDescription>Your CSV should have these columns (matching your Excel)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 bg-muted rounded-lg text-sm font-mono">
-                List of Projects, Sector, Geographical Scope, Group No, Yr, GroupID, conc, SDG, Link to the projects, Objectives
-              </div>
-              <Button variant="outline" className="mt-4 bg-transparent" onClick={downloadTemplate}>
-                <Download className="mr-2 h-4 w-4" />
-                Download Template
-              </Button>
-            </CardContent>
-          </Card>
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Expected Column Headers</CardTitle>
+                <CardDescription>Your CSV should have these columns (matching your Excel)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-muted rounded-lg text-sm font-mono">
+                  List of Projects, Sector, Geographical Scope, Group No, Yr, GroupID, conc, SDG, Link to the projects, Objectives
+                </div>
+                <Button variant="outline" className="mt-4 bg-transparent" onClick={downloadTemplate}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Template
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
           <Card>
             <CardHeader>
@@ -216,9 +218,9 @@ export default function BulkUploadPage() {
               <CardDescription>Select your CSV file to upload</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors flex flex-col items-center justify-center">
                 <FileSpreadsheet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <div className="space-y-2">
+                <div className="space-y-2 text-center">
                   <div className="font-medium">{file ? file.name : "Choose a CSV file"}</div>
                   <div className="text-sm text-muted-foreground">CSV files only</div>
                 </div>

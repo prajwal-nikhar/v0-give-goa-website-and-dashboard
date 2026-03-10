@@ -52,11 +52,11 @@ export default function HomePage() {
 
       const { data: projects } = await supabase
         .from("projects")
-        .select("student_names, organization_name, sdg, group_no")
+        .select("student_names, organization_name, sdg, group_no, sector")
         .eq("status", "approved");
 
       let studentsCount = 0;
-      const orgsSet = new Set<string>();
+      const sectorSet = new Set<string>();
       const sdgSet = new Set<string>();
 
       if (projects) {
@@ -67,8 +67,8 @@ export default function HomePage() {
           } else if (p.group_no) {
             studentsCount += 4; // Average group size for bulk uploaded projects
           }
-          if (p.organization_name) {
-            orgsSet.add(p.organization_name);
+          if (p.sector) {
+            sectorSet.add(p.sector);
           }
           // Parse SDG field which may contain multiple goals (e.g., "SDG 1, SDG 4")
           if (p.sdg) {
@@ -87,7 +87,7 @@ export default function HomePage() {
       setStats({
         totalProjects: projectCount || 0,
         studentsEngaged: studentsCount || 0,
-        partnerOrgs: orgsSet.size || 0,
+        partnerOrgs: sectorSet.size || 0,
         sdgGoals: sdgSet.size || 0,
       });
 
@@ -110,10 +110,10 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative py-16 md:py-20 lg:py-28 bg-gradient-to-b from-primary/5 to-background">
+      <section className="relative py-16 md:py-20 lg:py-28 bg-gradient-to-b from-primary/5 to-background overflow-hidden">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance">
+          <div className="max-w-3xl mx-auto text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Community Impact Through Student Action
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground text-pretty max-w-2xl mx-auto">
@@ -140,7 +140,7 @@ export default function HomePage() {
       <section className="py-12 md:py-16 lg:py-20 border-b">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 rounded-xl bg-background/60 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
                 {loading ? "..." : stats.totalProjects}
               </div>
@@ -148,7 +148,7 @@ export default function HomePage() {
                 Total Projects
               </div>
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 rounded-xl bg-background/60 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
                 {loading ? "..." : stats.studentsEngaged.toLocaleString()}
               </div>
@@ -156,7 +156,7 @@ export default function HomePage() {
                 Students Engaged
               </div>
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 rounded-xl bg-background/60 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
                 {loading ? "..." : stats.partnerOrgs}
               </div>
@@ -164,7 +164,7 @@ export default function HomePage() {
                 Partner Organizations
               </div>
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 rounded-xl bg-background/60 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">
                 {loading ? "..." : stats.sdgGoals}
               </div>
@@ -179,7 +179,7 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="py-12 md:py-16 lg:py-20">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-10 md:mb-12">
+          <div className="text-center space-y-4 mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h2 className="text-3xl md:text-4xl font-bold">
               Driving Real Impact
             </h2>
@@ -191,7 +191,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <CardHeader className="text-center">
                 <Target className="h-10 w-10 mx-auto mb-2 text-primary" />
                 <CardTitle className="text-lg">SDG Alignment</CardTitle>
@@ -200,7 +200,7 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
             </Card>
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <CardHeader className="text-center">
                 <Users className="h-10 w-10 mx-auto mb-2 text-primary" />
                 <CardTitle className="text-lg">Student-Led</CardTitle>
@@ -209,7 +209,7 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
             </Card>
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <CardHeader className="text-center">
                 <TrendingUp className="h-10 w-10 mx-auto mb-2 text-primary" />
                 <CardTitle className="text-lg">Measurable Impact</CardTitle>
@@ -218,7 +218,7 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
             </Card>
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <CardHeader className="text-center">
                 <Globe className="h-10 w-10 mx-auto mb-2 text-primary" />
                 <CardTitle className="text-lg">Community Focus</CardTitle>
