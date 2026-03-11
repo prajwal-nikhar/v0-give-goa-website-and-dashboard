@@ -49,6 +49,7 @@ export default function ProjectsPage() {
   const [sdgFilter, setSdgFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
   const supabase = getSupabaseClient();
 
   const currentYear = new Date().getFullYear();
@@ -290,43 +291,63 @@ export default function ProjectsPage() {
       ) : (
         <>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {paginatedProjects.map(project => (
-              <Card key={project.id} className='overflow-hidden hover:shadow-lg transition-shadow'>
-                <Link href={`/projects/${project.id}`}>
-                  <div className='h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center'>
-                    {project.image_url ? (
-                      <img src={project.image_url} alt={project.title} className='w-full h-full object-cover' />
-                    ) : (
-                      <div className='text-4xl font-bold text-primary/30'>
-                        {project.title?.charAt(0) || 'P'}
-                      </div>
-                    )}
-                  </div>
-                  <CardContent className='p-4'>
-                    <h2 className='text-lg font-bold mb-2 line-clamp-2'>{project.title}</h2>
-                    <p className='text-sm text-muted-foreground mb-3 line-clamp-2'>
-                      {project.objectives || project.description}
-                    </p>
-                    <div className='flex flex-wrap gap-2 mb-3'>
-                      {project.program && (
-                        <Badge variant='default' className='text-xs'>{project.program}</Badge>
-                      )}
-                      {project.year && (
-                        <Badge variant='outline' className='text-xs'>{project.year}</Badge>
-                      )}
-                      {project.sdg && (
-                        <Badge variant='secondary' className='text-xs'>{project.sdg.split(' - ')[0]}</Badge>
+            {paginatedProjects.map(project => {
+              const imageUrl =
+                typeof project.image_url === 'string'
+                  ? project.image_url.trim()
+                  : '';
+
+              const shouldShowImage = imageUrl && !brokenImages[project.id];
+
+              return (
+                <Card key={project.id} className='overflow-hidden hover:shadow-lg transition-shadow'>
+                  <Link href={`/projects/${project.id}`}>
+                    <div className='h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden'>
+                      {shouldShowImage ? (
+                        <img
+                          src={imageUrl}
+                          alt={project.title || 'Project image'}
+                          className='w-full h-full object-cover'
+                          loading='lazy'
+                          onError={() =>
+                            setBrokenImages((prev) => ({
+                              ...prev,
+                              [project.id]: true,
+                            }))
+                          }
+                        />
+                      ) : (
+                        <div className='text-4xl font-bold text-primary/30'>
+                          {project.title?.charAt(0) || 'P'}
+                        </div>
                       )}
                     </div>
-                    {project.geographical_scope && (
-                      <p className='text-xs text-muted-foreground'>
-                        Location: {project.geographical_scope}
+                    <CardContent className='p-4'>
+                      <h2 className='text-lg font-bold mb-2 line-clamp-2'>{project.title}</h2>
+                      <p className='text-sm text-muted-foreground mb-3 line-clamp-2'>
+                        {project.objectives || project.description}
                       </p>
-                    )}
-                  </CardContent>
-                </Link>
-              </Card>
-            ))}
+                      <div className='flex flex-wrap gap-2 mb-3'>
+                        {project.program && (
+                          <Badge variant='default' className='text-xs'>{project.program}</Badge>
+                        )}
+                        {project.year && (
+                          <Badge variant='outline' className='text-xs'>{project.year}</Badge>
+                        )}
+                        {project.sdg && (
+                          <Badge variant='secondary' className='text-xs'>{project.sdg.split(' - ')[0]}</Badge>
+                        )}
+                      </div>
+                      {project.geographical_scope && (
+                        <p className='text-xs text-muted-foreground'>
+                          Location: {project.geographical_scope}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Link>
+                </Card>
+              );
+            })}
           </div>
 
           {totalPages > 1 && (

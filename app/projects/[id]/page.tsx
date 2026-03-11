@@ -77,6 +77,8 @@ export default function ProjectDetailPage() {
     return <div>Loading...</div>;
   }
 
+  const reportUrl = project.file_url || project.project_link;
+
   return (
     <div className="min-h-screen">
       <div className="border-b bg-muted/30">
@@ -190,18 +192,23 @@ export default function ProjectDetailPage() {
           </Card>
         )}
 
-        {project.file_url && (
+        {reportUrl && (
           <Card>
             <CardHeader>
               <CardTitle>Project Report</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="w-full h-[600px] border rounded-lg overflow-hidden bg-muted">
-                <iframe src={project.file_url} className="w-full h-full" title="Project Report" loading="lazy" />
+                <iframe
+                  src={reportUrl}
+                  className="w-full h-full"
+                  title="Project Report"
+                  loading="lazy"
+                />
               </div>
               <div className="mt-4">
                 <Button asChild variant="outline">
-                  <a href={project.file_url} download>
+                  <a href={reportUrl} target="_blank" rel="noopener noreferrer">
                     Download Full Report
                   </a>
                 </Button>

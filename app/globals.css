@@ -125,3 +125,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Navbar link underline animation */
+.nav-link-underline {
+  @apply relative inline-flex items-center justify-center;
+}
+
+.nav-link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -0.2rem;
+  height: 2px;
+  width: 0;
+  border-radius: 9999px;
+  background-color: rgb(59 130 246); /* fallback */
+  background-color: var(--ring);
+  transition: width 300ms ease;
+}
+
+.nav-link-underline:hover::after,
+.nav-link-underline:focus-visible::after,
+.nav-link-underline[data-active="true"]::after {
+  width: 100%;
+}

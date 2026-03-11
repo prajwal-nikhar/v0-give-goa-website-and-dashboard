@@ -85,9 +85,10 @@ export function Navbar() {
                 href={item.href}
                 onClick={() => setActiveLink(item.href)}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
+                  "text-sm font-medium transition-colors hover:text-primary nav-link-underline",
                   activeLink === item.href ? "text-primary" : "text-muted-foreground",
                 )}
+                data-active={activeLink === item.href ? "true" : "false"}
               >
                 {item.name}
               </Link>
@@ -132,9 +133,10 @@ export function Navbar() {
                               setIsOpen(false)
                             }}
                             className={cn(
-                              "text-lg font-medium transition-colors hover:text-primary hover:bg-muted px-4 py-3 rounded-lg",
+                              "text-lg font-medium transition-colors hover:text-primary hover:bg-muted px-4 py-3 rounded-lg nav-link-underline",
                               activeLink === item.href ? "text-primary bg-primary/10" : "text-muted-foreground",
                             )}
+                            data-active={activeLink === item.href ? "true" : "false"}
                           >
                             {item.name}
                           </Link>

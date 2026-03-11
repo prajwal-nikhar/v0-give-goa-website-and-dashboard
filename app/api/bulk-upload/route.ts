@@ -80,6 +80,39 @@ export async function POST(request: NextRequest) {
       const hasExplicitTitle = !!rawTitle && rawTitle.toString().trim().length > 0;
       const title = rawTitle.toString().trim();
 
+      const rawImageUrl =
+        row['image_url'] ||
+        row['Image URL'] ||
+        row['ImageURL'] ||
+        row['imageUrl'] ||
+        '';
+      const imageUrl = rawImageUrl ? rawImageUrl.toString().trim() : null;
+
+      const rawStudentNames =
+        row['Student Names'] ||
+        row['student_names'] ||
+        row['Students'] ||
+        '';
+      const studentNamesArray =
+        rawStudentNames && rawStudentNames.toString().trim().length > 0
+          ? rawStudentNames
+              .toString()
+              .split(',')
+              .map((name: string) => name.trim())
+              .filter((name: string) => name.length > 0)
+          : [];
+
+      const rawFileUrl =
+        row['File URL'] ||
+        row['file_url'] ||
+        row['Report Link'] ||
+        row['report_link'] ||
+        row['Link to the projects'] ||
+        row['Project Link'] ||
+        row['project_link'] ||
+        '';
+      const fileUrl = rawFileUrl ? rawFileUrl.toString().trim() : null;
+
       return {
         title: title || 'Untitled Project',
         sector: row['Sector'] || row['sector'] || null,
@@ -94,8 +127,11 @@ export async function POST(request: NextRequest) {
         objectives: row['Objectives'] || row['objectives'] || null,
         description: row['Objectives'] || row['Description'] || row['description'] || null,
         organization_name: row['Organization'] || row['Partner Organization'] || row['organization_name'] || null,
+        image_url: imageUrl,
         faculty: row['Faculty'] || row['faculty'] || null,
         mentor: row['Mentor'] || row['mentor'] || null,
+        student_names: studentNamesArray,
+        file_url: fileUrl,
         submitter_email: row['Email'] || row['submitter_email'] || 'bulk-import@admin.com',
         status: 'approved',
         created_at: new Date().toISOString(),
