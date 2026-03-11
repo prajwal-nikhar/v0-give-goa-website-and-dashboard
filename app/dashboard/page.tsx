@@ -50,14 +50,16 @@ export default function DashboardPage() {
               className="w-full rounded-lg overflow-hidden border"
               style={{ height: "80vh" }}
             >
-              <iframe
-                title="Give_Goa_Dashboard"
-                width="600"
-                height="373.5"
-                src="https://app.powerbi.com/view?r=eyJrIjoiNGY4MGRlNWEtNDY3MC00NTJhLTg0NDItYWY2YmQzMzI4NTg1IiwidCI6IjFmNDM2ODQxLWZkMzEtNGFhYy1iNDkyLTlkMWI2OTJjMTU3YiIsImMiOjEwfQ%3D%3D"
-                frameBorder={0}
-                allowFullScreen
-              />
+              <div style={{ width: "100%", height: "90vh" }}>
+                <iframe
+                  title="Give_Goa_Dashboard"
+                  src="https://app.powerbi.com/view?r=eyJrIjoiNGY4MGRlNWEtNDY3MC00NTJhLTg0NDItYWY2YmQzMzI4NTg1IiwidCI6IjFmNDM2ODQxLWZkMzEtNGFhYy1iNDkyLTlkMWI2OTJjMTU3YiIsImMiOjEwfQ%3D%3D"
+                  width="100%"
+                  height="100%"
+                  frameBorder={0}
+                  allowFullScreen
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
